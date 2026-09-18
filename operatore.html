@@ -207,7 +207,8 @@ async function supaFetch(path, opts = {}) {
     const testo = await res.text().catch(() => '');
     throw new Error(testo || `Errore ${res.status}`);
   }
-  return res.status === 204 ? null : res.json();
+  const testoRisposta = await res.text();
+  return testoRisposta ? JSON.parse(testoRisposta) : null;
 }
 
 async function login(email, password) {
