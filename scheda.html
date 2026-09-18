@@ -176,9 +176,13 @@ function formattaData(iso) {
     if (a.lat != null && a.lng != null) {
       const mappa = L.map('mini-mappa', { zoomControl: false, dragging: false, scrollWheelZoom: false })
         .setView([a.lat, a.lng], 17);
-      L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+      const stradale = L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
         maxZoom: 19, attribution: '© OpenStreetMap contributors'
       }).addTo(mappa);
+      const satellite = L.tileLayer('https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}', {
+        maxZoom: 19, attribution: 'Esri'
+      });
+      L.control.layers({ 'Mappa': stradale, 'Satellite': satellite }, null, { position: 'topright' }).addTo(mappa);
       L.marker([a.lat, a.lng]).addTo(mappa);
     }
 
