@@ -36,6 +36,9 @@
   .stats-bar{background:var(--verde);padding:.5rem 1.5rem}
   .stats-inner{display:flex;gap:2rem;align-items:center;flex-wrap:wrap}
   .stat-item{display:flex;align-items:center;gap:.5rem;font-size:.8rem;font-weight:500;color:var(--sabbia)}
+  .stat-item.link{margin-left:auto}
+  .stat-item.link a{color:#fff;text-decoration:none;font-weight:600;display:flex;align-items:center;gap:.35rem}
+  .stat-item.link a:hover{text-decoration:underline}
   .stat-num{font-family:'Playfair Display',serif;font-size:1.1rem;font-weight:700;color:#fff}
 
   main{flex:1;position:relative;min-height:0}
@@ -73,6 +76,7 @@
       <div class="stat-item"><span class="stat-num" id="c-alberi">0</span><span>alberi piantati</span></div>
       <div class="stat-item"><span class="stat-num" id="c-adottati">0</span><span>adottati</span></div>
       <div class="stat-item">🌲 Nicolosi — dati in tempo reale</div>
+      <div class="stat-item link"><a href="./index.html">🏠 Torna alla pagina principale</a></div>
     </div>
   </div>
   <main>
