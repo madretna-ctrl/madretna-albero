@@ -77,7 +77,8 @@
     <div class="griglia">
       <div class="campo"><div class="etichetta">Specie</div><div class="valore" id="specie"></div></div>
       <div class="campo"><div class="etichetta">Zona</div><div class="valore" id="zona"></div></div>
-      <div class="campo"><div class="etichetta">Piantato da</div><div class="valore" id="piantatore"></div></div>
+      <div class="campo"><div class="etichetta">Donato da</div><div class="valore" id="donatore"></div></div>
+      <div class="campo" id="campo-piantatore"><div class="etichetta">Piantato da</div><div class="valore" id="piantatore"></div></div>
       <div class="campo"><div class="etichetta">Data di piantumazione</div><div class="valore" id="data"></div></div>
     </div>
 
@@ -150,9 +151,16 @@ function formattaData(iso) {
     document.getElementById('nome').textContent = a.nome || 'Albero senza nome';
     document.getElementById('specie').textContent = a.specie || '—';
     document.getElementById('zona').textContent = a.zona || '—';
-    document.getElementById('piantatore').textContent = a.piantatore_tipo === 'classe'
-      ? `${a.scuola || 'una scuola'} — ${a.piantatore_nome || ''}`
-      : (a.piantatore_nome || '—');
+    document.getElementById('donatore').textContent = a.adottante_anonimo
+      ? 'Donatore anonimo'
+      : (a.adottante_tipo === 'classe'
+          ? `${a.scuola || 'una scuola'} — ${a.adottante_nome || ''}`
+          : (a.adottante_nome || '—'));
+    if (a.piantato_da) {
+      document.getElementById('piantatore').textContent = a.piantato_da;
+    } else {
+      document.getElementById('campo-piantatore').style.display = 'none';
+    }
     document.getElementById('data').textContent = formattaData(a.data_piantumazione);
     document.getElementById('codice').textContent = a.codice;
 

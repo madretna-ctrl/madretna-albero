@@ -132,13 +132,18 @@ async function supaGet(path) {
 
 function popupAlbero(a) {
   const foto = a.foto_url ? `<img src="${a.foto_url}" alt="${a.nome}">` : '';
-  const chi = a.piantatore_tipo === 'classe'
-    ? `${a.scuola || 'una scuola'} — ${a.piantatore_nome || ''}`
-    : (a.piantatore_nome || '');
+  const donatore = a.adottante_anonimo
+    ? 'Donatore anonimo'
+    : (a.adottante_tipo === 'classe'
+        ? `${a.scuola || 'una scuola'} — ${a.adottante_nome || ''}`
+        : (a.adottante_nome || ''));
+  const rigaDonatore = donatore ? `<p>Donato da: ${donatore}</p>` : '';
+  const rigaPiantato = a.piantato_da ? `<p>Piantato da: ${a.piantato_da}</p>` : '';
   return `<div class="popup">
     <h3>${a.nome || 'Albero senza nome'}</h3>
     <p class="specie">${a.specie || ''}</p>
-    <p>Piantato da: ${chi}</p>
+    ${rigaDonatore}
+    ${rigaPiantato}
     <p>${a.data_piantumazione || ''}${a.adottato ? ' · adottato 🌳' : ''}</p>
     ${foto}
     <a class="scheda" href="./scheda.html?c=${encodeURIComponent(a.codice)}">Apri scheda</a>

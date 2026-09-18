@@ -138,7 +138,7 @@
 
       <div class="sezione">
         <div class="campo">
-          <label for="f-tipo">Chi adotta l'albero *</label>
+          <label for="f-tipo">Chi dona/adotta l'albero *</label>
           <select id="f-tipo" required>
             <option value="">— Seleziona —</option>
             <option value="cittadino">Un cittadino</option>
@@ -151,13 +151,25 @@
           <input id="f-scuola" type="text" placeholder="Es. IC Nicolosi — Classe 3ªB">
         </div>
         <div class="campo">
-          <label for="f-adottante">Nome dell'adottante *</label>
+          <label for="f-adottante">Nome del donatore/adottante *</label>
           <input id="f-adottante" type="text" placeholder="Nome e cognome, o nome della classe/gruppo" required>
-          <small>Comparirà sulla scheda pubblica dell'albero e sul certificato di adozione.</small>
+          <small>Serve sempre per il certificato di adozione, anche se il nome non verrà mostrato pubblicamente.</small>
         </div>
-        <div class="campo">
-          <label for="f-email">Email dell'adottante (facoltativa)</label>
+        <div class="check" style="margin-top:.6rem">
+          <input type="checkbox" id="f-anonimo">
+          <label for="f-anonimo">Il donatore desidera restare anonimo (il nome non comparirà sulla scheda pubblica dell'albero)</label>
+        </div>
+        <div class="campo" style="margin-top:.9rem">
+          <label for="f-email">Email del donatore (facoltativa)</label>
           <input id="f-email" type="email" placeholder="Per inviare il certificato digitale">
+        </div>
+      </div>
+
+      <div class="sezione">
+        <div class="campo">
+          <label for="f-piantato-da">Piantato da (facoltativo)</label>
+          <input id="f-piantato-da" type="text" placeholder="Es. Mario — Classe I B">
+          <small>Chi ha materialmente messo a dimora l'albero, se diverso dal donatore. Lascia vuoto se a piantarlo è stato un volontario MadrEtna: in quel caso sulla scheda non comparirà nulla.</small>
         </div>
       </div>
 
@@ -379,6 +391,8 @@ $('btn-invia').onclick = async () => {
   const tipo = $('f-tipo').value;
   const adottante = $('f-adottante').value.trim();
   const scuola = $('f-scuola').value.trim();
+  const anonimo = $('f-anonimo').checked;
+  const piantatoDa = $('f-piantato-da').value.trim();
   const email = $('f-email').value.trim();
   const privacy = $('f-privacy').checked;
 
@@ -401,8 +415,7 @@ $('btn-invia').onclick = async () => {
       headers: { Prefer: 'return=representation' },
       body: JSON.stringify({
         nome, specie_id: Number(specieId), zona_id: zonaId,
-        piantatore_nome: adottante, piantatore_tipo: tipo,
-        scuola: tipo === 'classe' ? scuola : null,
+        piantato_da: piantatoDa || null,
         lat: coordinate.lat, lng: coordinate.lng
       })
     });
@@ -424,7 +437,8 @@ $('btn-invia').onclick = async () => {
       method: 'POST',
       body: JSON.stringify({
         albero_id: albero.id, adottante_nome: adottante,
-        adottante_email: email || null, privacy_accettata: true
+        adottante_tipo: tipo, scuola: tipo === 'classe' ? (scuola || null) : null,
+        anonimo, adottante_email: email || null, privacy_accettata: true
       })
     });
 
@@ -440,9 +454,10 @@ $('btn-invia').onclick = async () => {
 };
 
 function resettaForm() {
-  ['f-nome','f-adottante','f-scuola','f-email'].forEach(id => $(id).value = '');
+  ['f-nome','f-adottante','f-scuola','f-email','f-piantato-da'].forEach(id => $(id).value = '');
   $('f-specie').value = ''; $('f-zona').value = ''; $('f-tipo').value = '';
   $('f-privacy').checked = false;
+  $('f-anonimo').checked = false;
   $('campo-scuola').style.display = 'none';
   $('foto-preview').style.display = 'none';
   $('foto-placeholder').style.display = 'block';
