@@ -3,83 +3,60 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>Modalità Operatore — Giornata dell'Albero MadrEtna</title>
+<title>Elenco Alberi — Giornata dell'Albero MadrEtna</title>
 <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@400;700;900&family=DM+Sans:wght@300;400;500;600&display=swap" rel="stylesheet">
 <style>
   :root{
-    --verde:#2d5a27; --verde-chiaro:#4a8c3f; --lava:#1a1a1a; --terra:#6b3d14;
-    --sabbia:#f4ede0; --grigio:#e8e2d9; --rosso:#c0392b; --arancio:#e67e22; --accent:#8bc34a;
+    --verde:#2d5a27; --verde-chiaro:#4a8c3f; --lava:#1a1a1a;
+    --sabbia:#f4ede0; --grigio:#e8e2d9; --rosso:#c0392b;
   }
   *{box-sizing:border-box}
   body{margin:0;font-family:'DM Sans',sans-serif;color:var(--lava);background:var(--sabbia);min-height:100vh}
   h1,h2,h3{font-family:'Playfair Display',serif;font-weight:700;margin:0}
 
-  header{background:#fff;border-bottom:3px solid var(--verde);box-shadow:0 2px 12px rgba(0,0,0,.15);padding:0 1.2rem;position:sticky;top:0;z-index:100}
-  .header-inner{display:flex;align-items:center;gap:.7rem;height:64px}
-  header img{height:44px;width:auto}
+  header{background:#fff;border-bottom:3px solid var(--verde);box-shadow:0 2px 12px rgba(0,0,0,.15);padding:0 1.2rem}
+  .header-inner{display:flex;align-items:center;gap:.7rem;height:64px;max-width:1100px;margin:0 auto}
+  header img{height:44px}
   header .titolo{font-family:'Playfair Display',serif;font-weight:700;font-size:1.05rem;padding-left:.7rem;border-left:1px solid var(--grigio)}
-  header .badge{margin-left:auto;font-size:.75rem;background:var(--verde);color:#fff;padding:.3rem .7rem;border-radius:20px;display:flex;align-items:center;gap:.4rem}
-  header .badge button{background:none;border:0;color:#fff;opacity:.75;cursor:pointer;font:inherit;text-decoration:underline;padding:0}
+  header a.home{font-size:.82rem;color:var(--verde);text-decoration:none;font-weight:600;margin-left:.6rem}
+  .badge{margin-left:auto;font-size:.75rem;background:var(--verde);color:#fff;padding:.3rem .7rem;border-radius:20px;display:flex;align-items:center;gap:.4rem}
+  .badge button{background:none;border:0;color:#fff;opacity:.75;cursor:pointer;font:inherit;text-decoration:underline;padding:0}
 
-  main{max-width:520px;margin:0 auto;padding:1.2rem 1rem 3rem}
+  main{max-width:1100px;margin:0 auto;padding:1.6rem 1.2rem 3rem}
 
-  /* LOGIN */
-  .login-card{background:#fff;border-radius:16px;padding:1.8rem 1.5rem;margin-top:2.5rem;box-shadow:0 4px 20px rgba(0,0,0,.08)}
+  .login-card{background:#fff;border-radius:16px;padding:1.8rem 1.5rem;margin:2.5rem auto 0;max-width:420px;box-shadow:0 4px 20px rgba(0,0,0,.08)}
   .login-card h2{font-size:1.3rem;margin-bottom:.3rem}
   .login-card p{color:#666;font-size:.85rem;margin:0 0 1.3rem}
   .campo{margin-bottom:1rem}
   .campo label{display:block;font-size:.78rem;font-weight:600;color:var(--verde);margin-bottom:.3rem}
-  .campo input, .campo select, .campo textarea{
-    width:100%;padding:.65rem .8rem;border:1px solid var(--grigio);border-radius:8px;
-    font:inherit;font-size:.92rem;background:#fff;color:var(--lava)
-  }
-  .campo input:focus, .campo select:focus, .campo textarea:focus{outline:none;border-color:var(--verde-chiaro);box-shadow:0 0 0 3px rgba(74,140,63,.15)}
-  .campo small{display:block;color:#888;font-size:.72rem;margin-top:.3rem}
-
-  button.principale{
-    width:100%;padding:.85rem;border:0;border-radius:10px;background:var(--verde);color:#fff;
-    font:inherit;font-size:.95rem;font-weight:600;cursor:pointer;transition:background .15s
-  }
+  .campo input{width:100%;padding:.65rem .8rem;border:1px solid var(--grigio);border-radius:8px;font:inherit;font-size:.92rem}
+  button.principale{width:100%;padding:.8rem;border:0;border-radius:10px;background:var(--verde);color:#fff;font:inherit;font-size:.95rem;font-weight:600;cursor:pointer}
   button.principale:hover{background:var(--verde-chiaro)}
-  button.principale:disabled{background:#ccc;cursor:not-allowed}
   .errore{background:#fbe9e7;color:var(--rosso);border:1px solid #f3c6c0;border-radius:8px;padding:.6rem .8rem;font-size:.82rem;margin-bottom:1rem}
-  .successo{background:#eaf5e6;color:var(--verde);border:1px solid #c8e6bf;border-radius:8px;padding:.6rem .8rem;font-size:.82rem;margin-bottom:1rem}
 
-  /* FORM ALBERO */
-  .form-card{background:#fff;border-radius:16px;padding:1.4rem 1.3rem;margin-top:1rem;box-shadow:0 4px 20px rgba(0,0,0,.06)}
-  .form-card h3{font-size:1.05rem;margin-bottom:1rem;display:flex;align-items:center;gap:.5rem}
-  .sezione{margin-bottom:1.4rem;padding-bottom:1.4rem;border-bottom:1px solid var(--grigio)}
-  .sezione:last-of-type{border-bottom:0;margin-bottom:0;padding-bottom:0}
+  .toolbar{display:flex;gap:.8rem;align-items:center;flex-wrap:wrap;margin-bottom:1.1rem}
+  .toolbar input{flex:1;min-width:200px;padding:.6rem .9rem;border-radius:20px;border:1px solid var(--grigio);font:inherit;font-size:.88rem;background:#fff}
+  .toolbar .conteggio{font-size:.8rem;color:#777;white-space:nowrap}
 
-  .gps-box{background:var(--sabbia);border:1px dashed var(--grigio);border-radius:10px;padding:.9rem;text-align:center}
-  .gps-box.ok{background:#eaf5e6;border-color:#c8e6bf;border-style:solid}
-  .gps-box .coord{font-size:.78rem;color:#666;margin-top:.3rem;font-family:monospace}
-  button.secondario{
-    background:var(--sabbia);border:1px solid var(--grigio);border-radius:8px;padding:.55rem 1rem;
-    font:inherit;font-size:.85rem;cursor:pointer;color:var(--lava);margin-top:.5rem
-  }
-  button.secondario:hover{background:var(--grigio)}
-
-  .riga2{display:grid;grid-template-columns:1fr 1fr;gap:.8rem}
-  @media(max-width:420px){.riga2{grid-template-columns:1fr}}
-
-  .foto-box{border:2px dashed var(--grigio);border-radius:10px;padding:1.2rem;text-align:center;cursor:pointer;position:relative;overflow:hidden}
-  .foto-box img{max-width:100%;max-height:180px;border-radius:8px;display:block;margin:0 auto}
-  .foto-box input{position:absolute;inset:0;opacity:0;cursor:pointer}
-  .foto-hint{font-size:.78rem;color:#888;margin-top:.4rem}
-
-  .check{display:flex;align-items:flex-start;gap:.5rem;font-size:.82rem;color:#555;margin-top:.9rem}
-  .check input{margin-top:.2rem}
-
-  .stato-invio{text-align:center;font-size:.85rem;color:var(--verde);margin-top:.8rem;display:none}
+  .tabella-wrap{background:#fff;border-radius:14px;overflow:hidden;box-shadow:0 2px 14px rgba(0,0,0,.06)}
+  table{width:100%;border-collapse:collapse;font-size:.85rem}
+  th{text-align:left;background:var(--verde);color:#fff;padding:.7rem .9rem;font-weight:600;font-size:.78rem;text-transform:uppercase;letter-spacing:.03em;white-space:nowrap}
+  td{padding:.7rem .9rem;border-bottom:1px solid var(--grigio)}
+  tbody tr{cursor:pointer;transition:background .1s}
+  tbody tr:hover{background:var(--sabbia)}
+  tbody tr:last-child td{border-bottom:0}
+  .badge-cert{background:var(--verde);color:#fff;font-size:.7rem;padding:.2rem .5rem;border-radius:10px;white-space:nowrap}
+  .badge-anonimo{color:#999;font-style:italic}
+  .stato{text-align:center;color:#777;padding:3rem 1rem;font-size:.9rem}
+  .scroll-x{overflow-x:auto}
 </style>
 </head>
 <body>
 <header>
   <div class="header-inner">
     <img src="data:image/png;base64,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" alt="Associazione MadrEtna">
-    <div class="titolo">Modalità Operatore</div>
-    <a href="./index.html" style="margin-left:.6rem;font-size:.82rem;color:var(--verde);text-decoration:none;font-weight:600">🏠 Home</a>
+    <div class="titolo">Elenco Alberi</div>
+    <a class="home" href="./index.html">🏠 Home</a>
     <div class="badge" id="badge-utente" style="display:none">
       🔐 <span id="email-utente"></span>
       <button id="btn-esci">esci</button>
@@ -88,146 +65,52 @@
 </header>
 
 <main>
-
-  <!-- LOGIN -->
   <div class="login-card" id="vista-login">
     <h2>Accedi come volontario</h2>
-    <p>Usa le credenziali operatore fornite da MadrEtna per registrare gli alberi piantati oggi.</p>
+    <p>L'elenco contiene dati dei donatori: l'accesso è riservato agli operatori.</p>
     <div id="login-errore"></div>
-    <div class="campo">
-      <label for="login-email">Email</label>
-      <input id="login-email" type="email" autocomplete="username" placeholder="operatore@madretna.it">
-    </div>
-    <div class="campo">
-      <label for="login-pw">Password</label>
-      <input id="login-pw" type="password" autocomplete="current-password">
-    </div>
+    <div class="campo"><label for="login-email">Email</label><input id="login-email" type="email" autocomplete="username"></div>
+    <div class="campo"><label for="login-pw">Password</label><input id="login-pw" type="password" autocomplete="current-password"></div>
     <button class="principale" id="btn-login">Accedi</button>
   </div>
 
-  <!-- FORM REGISTRAZIONE ALBERO -->
-  <div id="vista-form" style="display:none">
-
-    <div style="text-align:left;margin-bottom:1rem">
-      <a href="./elenco.html" style="display:inline-flex;align-items:center;gap:.5rem;background:#fff;border:1px solid var(--grigio);border-radius:10px;padding:.6rem 1rem;color:var(--verde);text-decoration:none;font-weight:600;font-size:.88rem;box-shadow:0 2px 10px rgba(0,0,0,.05)">
-        📋 Elenco alberi &amp; certificati
-      </a>
+  <div id="vista-elenco" style="display:none">
+    <div class="toolbar">
+      <input id="ricerca" type="text" placeholder="Cerca per nome albero, donatore o codice…">
+      <span class="conteggio" id="conteggio"></span>
     </div>
-
-    <div class="form-card">
-      <h3>📍 Posizione GPS</h3>
-      <div class="gps-box" id="gps-box">
-        <div id="gps-testo">Rileva la posizione esatta dell'albero appena piantato</div>
-        <div class="coord" id="gps-coord"></div>
-        <button class="secondario" id="btn-gps">🛰 Rileva posizione</button>
-      </div>
-    </div>
-
-    <div class="form-card">
-      <h3>🌳 Dati dell'albero</h3>
-
-      <div class="sezione">
-        <div class="campo">
-          <label for="f-nome">Nome dato all'albero *</label>
-          <input id="f-nome" type="text" placeholder="Es. Speranza, Etna Junior…" required>
-        </div>
-        <div class="riga2">
-          <div class="campo">
-            <label for="f-specie">Specie *</label>
-            <select id="f-specie" required><option value="">— Seleziona —</option></select>
-          </div>
-          <div class="campo">
-            <label for="f-zona">Zona *</label>
-            <select id="f-zona" required><option value="">— Seleziona —</option></select>
-          </div>
-        </div>
-      </div>
-
-      <div class="sezione">
-        <div class="campo">
-          <label for="f-tipo">Chi dona/adotta l'albero *</label>
-          <select id="f-tipo" required>
-            <option value="">— Seleziona —</option>
-            <option value="cittadino">Un cittadino</option>
-            <option value="classe">Una classe scolastica</option>
-            <option value="gruppo">Un gruppo/associazione</option>
-          </select>
-        </div>
-        <div class="campo" id="campo-scuola" style="display:none">
-          <label for="f-scuola">Nome della scuola</label>
-          <input id="f-scuola" type="text" placeholder="Es. IC Nicolosi — Classe 3ªB">
-        </div>
-        <div class="campo">
-          <label for="f-adottante">Nome del donatore/adottante *</label>
-          <input id="f-adottante" type="text" placeholder="Nome e cognome, o nome della classe/gruppo" required>
-          <small>Serve sempre per il certificato di adozione, anche se il nome non verrà mostrato pubblicamente.</small>
-        </div>
-        <div class="check" style="margin-top:.6rem">
-          <input type="checkbox" id="f-anonimo">
-          <label for="f-anonimo">Il donatore desidera restare anonimo (il nome non comparirà sulla scheda pubblica dell'albero)</label>
-        </div>
-        <div class="campo" style="margin-top:.9rem">
-          <label for="f-email">Email del donatore (facoltativa)</label>
-          <input id="f-email" type="email" placeholder="Per inviare il certificato digitale">
-        </div>
-      </div>
-
-      <div class="sezione">
-        <div class="campo">
-          <label for="f-piantato-da">Piantato da (facoltativo)</label>
-          <input id="f-piantato-da" type="text" placeholder="Es. Mario — Classe I B">
-          <small>Chi ha materialmente messo a dimora l'albero, se diverso dal donatore. Lascia vuoto se a piantarlo è stato un volontario MadrEtna: in quel caso sulla scheda non comparirà nulla.</small>
-        </div>
-      </div>
-
-      <div class="sezione">
-        <label style="display:block;font-size:.78rem;font-weight:600;color:var(--verde);margin-bottom:.4rem">Foto dell'albero (facoltativa)</label>
-        <div class="foto-box" id="foto-box">
-          <div id="foto-placeholder">📷<br><span class="foto-hint">Scatta o carica una foto</span></div>
-          <img id="foto-preview" style="display:none">
-          <input type="file" id="f-foto" accept="image/*" capture="environment">
-        </div>
-      </div>
-
-      <div class="check">
-        <input type="checkbox" id="f-privacy" required>
-        <label for="f-privacy">L'adottante ha letto e accetta l'informativa privacy MadrEtna ai sensi del GDPR (Reg. UE 2016/679) per il trattamento dei dati ai fini dell'adozione.</label>
-      </div>
-
-      <div id="form-errore"></div>
-      <button class="principale" id="btn-invia" style="margin-top:1.1rem">🌿 Registra l'albero</button>
-      <div class="stato-invio" id="stato-invio"></div>
+    <div class="stato" id="stato">Caricamento alberi…</div>
+    <div class="tabella-wrap scroll-x" id="tabella-wrap" style="display:none">
+      <table>
+        <thead>
+          <tr>
+            <th>Codice</th><th>Nome albero</th><th>Specie</th><th>Donatore</th>
+            <th>Piantato da</th><th>Data</th><th>Certificato</th>
+          </tr>
+        </thead>
+        <tbody id="corpo-tabella"></tbody>
+      </table>
     </div>
   </div>
-
 </main>
 
 <script>
-/* ========== CONFIGURAZIONE (stessa del progetto Supabase collegato a mappa.html) ========== */
 const SUPABASE_URL = 'https://kmxevzxzezqqlgontiuy.supabase.co';
 const SUPABASE_ANON_KEY = 'sb_publishable_FGXvu3jHu4Zi5LzPzTR7pA_pORU1nLR';
 
 let accessToken = null;
-let coordinate = null;
-let fotoCompressa = null;
-
+let righe = [];
 const $ = id => document.getElementById(id);
 
-/* ---------- Supabase REST helpers ---------- */
 async function supaFetch(path, opts = {}) {
   const headers = {
-    apikey: SUPABASE_ANON_KEY,
-    'Content-Type': 'application/json',
-    ...(opts.headers || {})
+    apikey: SUPABASE_ANON_KEY, 'Content-Type': 'application/json',
+    ...(opts.headers || {}), Authorization: `Bearer ${accessToken || SUPABASE_ANON_KEY}`
   };
-  headers.Authorization = `Bearer ${accessToken || SUPABASE_ANON_KEY}`;
   const res = await fetch(`${SUPABASE_URL}${path}`, { ...opts, headers });
-  if (!res.ok) {
-    const testo = await res.text().catch(() => '');
-    throw new Error(testo || `Errore ${res.status}`);
-  }
-  const testoRisposta = await res.text();
-  return testoRisposta ? JSON.parse(testoRisposta) : null;
+  if (!res.ok) { const t = await res.text().catch(() => ''); throw new Error(t || `Errore ${res.status}`); }
+  const testo = await res.text();
+  return testo ? JSON.parse(testo) : null;
 }
 
 async function login(email, password) {
@@ -238,35 +121,22 @@ async function login(email, password) {
   });
   const data = await res.json();
   if (!res.ok) throw new Error(data.error_description || data.msg || 'Credenziali non valide');
-  return data; // { access_token, user, ... }
+  return data;
 }
 
-/* ---------- Sessione (salvata solo per questa sessione del browser) ---------- */
-function salvaSessione(data) {
+function entraConSessione(data) {
   accessToken = data.access_token;
   sessionStorage.setItem('mde_session', JSON.stringify(data));
   $('email-utente').textContent = data.user.email;
   $('badge-utente').style.display = 'flex';
   $('vista-login').style.display = 'none';
-  $('vista-form').style.display = 'block';
-}
-
-function ripristinaSessione() {
-  const raw = sessionStorage.getItem('mde_session');
-  if (!raw) return false;
-  try {
-    const data = JSON.parse(raw);
-    salvaSessione(data);
-    return true;
-  } catch { return false; }
+  $('vista-elenco').style.display = 'block';
+  caricaElenco();
 }
 
 $('btn-esci').onclick = () => {
   sessionStorage.removeItem('mde_session');
-  accessToken = null;
-  $('badge-utente').style.display = 'none';
-  $('vista-form').style.display = 'none';
-  $('vista-login').style.display = 'block';
+  location.reload();
 };
 
 $('btn-login').onclick = async () => {
@@ -276,209 +146,96 @@ $('btn-login').onclick = async () => {
   err.innerHTML = '';
   if (!email || !pw) { err.innerHTML = '<div class="errore">Inserisci email e password.</div>'; return; }
   $('btn-login').disabled = true;
-  $('btn-login').textContent = 'Accesso in corso…';
   try {
     const data = await login(email, pw);
-    salvaSessione(data);
-    await caricaSpecieEZone();
+    entraConSessione(data);
   } catch (e) {
     err.innerHTML = `<div class="errore">${e.message}</div>`;
   }
   $('btn-login').disabled = false;
-  $('btn-login').textContent = 'Accedi';
 };
 
-/* ---------- GPS ---------- */
-$('btn-gps').onclick = () => {
-  const box = $('gps-box');
-  $('gps-testo').textContent = 'Rilevamento in corso…';
-  if (!navigator.geolocation) {
-    $('gps-testo').textContent = 'Il tuo browser non supporta la geolocalizzazione.';
-    return;
-  }
-  navigator.geolocation.getCurrentPosition(
-    pos => {
-      coordinate = { lat: pos.coords.latitude, lng: pos.coords.longitude };
-      box.classList.add('ok');
-      $('gps-testo').textContent = '✅ Posizione rilevata';
-      $('gps-coord').textContent = `${coordinate.lat.toFixed(6)}, ${coordinate.lng.toFixed(6)} (± ${Math.round(pos.coords.accuracy)} m)`;
-      $('btn-gps').textContent = '🔄 Rileva di nuovo';
-    },
-    err => {
-      $('gps-testo').textContent = 'Posizione non disponibile — consenti l\'accesso al GPS e riprova.';
-      console.error(err);
-    },
-    { enableHighAccuracy: true, timeout: 15000 }
-  );
-};
-
-/* ---------- Specie / Zone / Tipo adottante ---------- */
-async function caricaSpecieEZone() {
+async function caricaElenco() {
+  const stato = $('stato');
   try {
-    const [specie, zone] = await Promise.all([
-      supaFetch('/rest/v1/specie?select=id,nome_comune&attiva=eq.true&order=ordine'),
-      supaFetch('/rest/v1/zone?select=id,nome&attiva=eq.true&order=nome')
+    const [alberi, adozioni, specie, zone, certificati] = await Promise.all([
+      supaFetch('/rest/v1/alberi?select=*&order=creato_il.desc'),
+      supaFetch('/rest/v1/adozioni?select=*&order=creata_il.desc'),
+      supaFetch('/rest/v1/specie?select=id,nome_comune'),
+      supaFetch('/rest/v1/zone?select=id,nome'),
+      supaFetch('/rest/v1/certificati?select=albero_id')
     ]);
-    const selSpecie = $('f-specie');
-    specie.forEach(s => selSpecie.add(new Option(s.nome_comune, s.id)));
 
-    const selZona = $('f-zona');
-    if (zone.length === 0) {
-      selZona.innerHTML = '<option value="">Nessuna zona creata — aggiungila prima in Supabase</option>';
-    } else {
-      zone.forEach(z => selZona.add(new Option(z.nome, z.id)));
-    }
-  } catch (e) {
-    console.error('Errore nel caricamento di specie/zone', e);
-  }
-}
+    const specieMap = Object.fromEntries(specie.map(s => [s.id, s.nome_comune]));
+    const zonaMap = Object.fromEntries(zone.map(z => [z.id, z.nome]));
+    const certSet = new Set(certificati.map(c => c.albero_id));
 
-$('f-tipo').addEventListener('change', () => {
-  $('campo-scuola').style.display = $('f-tipo').value === 'classe' ? 'block' : 'none';
-});
+    // ultima adozione per ogni albero
+    const adozioneMap = {};
+    adozioni.forEach(ad => { if (!adozioneMap[ad.albero_id]) adozioneMap[ad.albero_id] = ad; });
 
-/* ---------- Foto: compressione lato client prima dell'upload ---------- */
-$('f-foto').addEventListener('change', async e => {
-  const file = e.target.files[0];
-  if (!file) return;
-  fotoCompressa = await comprimiImmagine(file, 1280, 0.75);
-  $('foto-preview').src = fotoCompressa;
-  $('foto-preview').style.display = 'block';
-  $('foto-placeholder').style.display = 'none';
-});
-
-function comprimiImmagine(file, maxLato, qualita) {
-  return new Promise((resolve, reject) => {
-    const reader = new FileReader();
-    reader.onload = e => {
-      const img = new Image();
-      img.onload = () => {
-        let { width, height } = img;
-        if (width > height && width > maxLato) { height *= maxLato / width; width = maxLato; }
-        else if (height > maxLato) { width *= maxLato / height; height = maxLato; }
-        const canvas = document.createElement('canvas');
-        canvas.width = width; canvas.height = height;
-        canvas.getContext('2d').drawImage(img, 0, 0, width, height);
-        resolve(canvas.toDataURL('image/jpeg', qualita));
+    righe = alberi.map(a => {
+      const ad = adozioneMap[a.id] || {};
+      return {
+        id: a.id, codice: a.codice, nome: a.nome || '—',
+        specie: specieMap[a.specie_id] || '—', zona: zonaMap[a.zona_id] || '—',
+        donatore: ad.adottante_nome || '—', anonimo: !!ad.anonimo,
+        tipo: ad.adottante_tipo, scuola: ad.scuola,
+        piantatoDa: a.piantato_da || '—',
+        data: a.data_piantumazione, haCertificato: certSet.has(a.id)
       };
-      img.onerror = reject;
-      img.src = e.target.result;
-    };
-    reader.onerror = reject;
-    reader.readAsDataURL(file);
-  });
-}
-
-async function caricaFotoSuStorage(dataUrl, codiceAlbero) {
-  const blob = await (await fetch(dataUrl)).blob();
-  const nomeFile = `piantumazione/${codiceAlbero}-${Date.now()}.jpg`;
-  const res = await fetch(`${SUPABASE_URL}/storage/v1/object/alberi/${nomeFile}`, {
-    method: 'POST',
-    headers: {
-      apikey: SUPABASE_ANON_KEY,
-      Authorization: `Bearer ${accessToken}`,
-      'Content-Type': 'image/jpeg'
-    },
-    body: blob
-  });
-  if (!res.ok) throw new Error('Caricamento foto non riuscito');
-  return `${SUPABASE_URL}/storage/v1/object/public/alberi/${nomeFile}`;
-}
-
-/* ---------- Invio form ---------- */
-$('btn-invia').onclick = async () => {
-  const err = $('form-errore');
-  const stato = $('stato-invio');
-  err.innerHTML = '';
-
-  if (!coordinate) { err.innerHTML = '<div class="errore">Rileva prima la posizione GPS dell\'albero.</div>'; return; }
-  const nome = $('f-nome').value.trim();
-  const specieId = $('f-specie').value;
-  const zonaId = $('f-zona').value;
-  const tipo = $('f-tipo').value;
-  const adottante = $('f-adottante').value.trim();
-  const scuola = $('f-scuola').value.trim();
-  const anonimo = $('f-anonimo').checked;
-  const piantatoDa = $('f-piantato-da').value.trim();
-  const email = $('f-email').value.trim();
-  const privacy = $('f-privacy').checked;
-
-  if (!nome || !specieId || !zonaId || !tipo || !adottante) {
-    err.innerHTML = '<div class="errore">Compila tutti i campi obbligatori (*).</div>';
-    return;
-  }
-  if (!privacy) {
-    err.innerHTML = '<div class="errore">Serve la conferma di accettazione della privacy da parte dell\'adottante.</div>';
-    return;
-  }
-
-  $('btn-invia').disabled = true;
-  $('btn-invia').textContent = 'Registrazione in corso…';
-
-  try {
-    // 1) crea l'albero
-    const nuovoAlbero = await supaFetch('/rest/v1/alberi', {
-      method: 'POST',
-      headers: { Prefer: 'return=representation' },
-      body: JSON.stringify({
-        nome, specie_id: Number(specieId), zona_id: zonaId,
-        piantato_da: piantatoDa || null,
-        lat: coordinate.lat, lng: coordinate.lng
-      })
-    });
-    const albero = nuovoAlbero[0];
-
-    // 2) carica la foto, se presente, e aggiorna l'albero
-    if (fotoCompressa) {
-      stato.style.display = 'block';
-      stato.textContent = 'Carico la foto…';
-      const url = await caricaFotoSuStorage(fotoCompressa, albero.codice);
-      await supaFetch(`/rest/v1/alberi?id=eq.${albero.id}`, {
-        method: 'PATCH',
-        body: JSON.stringify({ foto_url: url })
-      });
-    }
-
-    // 3) registra l'adozione (fa scattare in automatico "adottato = true")
-    await supaFetch('/rest/v1/adozioni', {
-      method: 'POST',
-      body: JSON.stringify({
-        albero_id: albero.id, adottante_nome: adottante,
-        adottante_tipo: tipo, scuola: tipo === 'classe' ? (scuola || null) : null,
-        anonimo, adottante_email: email || null, privacy_accettata: true
-      })
     });
 
-    stato.style.display = 'block';
-    stato.textContent = `✅ Albero "${nome}" registrato con codice ${albero.codice}`;
-    resettaForm();
+    stato.style.display = 'none';
+    $('tabella-wrap').style.display = 'block';
+    disegnaTabella(righe);
   } catch (e) {
-    err.innerHTML = `<div class="errore">Registrazione non riuscita: ${e.message}</div>`;
+    stato.textContent = 'Impossibile caricare l\'elenco. Riprova più tardi.';
+    console.error(e);
   }
-
-  $('btn-invia').disabled = false;
-  $('btn-invia').textContent = '🌿 Registra l\'albero';
-};
-
-function resettaForm() {
-  ['f-nome','f-adottante','f-scuola','f-email','f-piantato-da'].forEach(id => $(id).value = '');
-  $('f-specie').value = ''; $('f-zona').value = ''; $('f-tipo').value = '';
-  $('f-privacy').checked = false;
-  $('f-anonimo').checked = false;
-  $('campo-scuola').style.display = 'none';
-  $('foto-preview').style.display = 'none';
-  $('foto-placeholder').style.display = 'block';
-  $('f-foto').value = '';
-  fotoCompressa = null;
-  coordinate = null;
-  $('gps-box').classList.remove('ok');
-  $('gps-testo').textContent = 'Rileva la posizione esatta dell\'albero appena piantato';
-  $('gps-coord').textContent = '';
-  $('btn-gps').textContent = '🛰 Rileva posizione';
 }
 
-/* ---------- Avvio ---------- */
-if (ripristinaSessione()) caricaSpecieEZone();
+function formattaData(iso) {
+  if (!iso) return '—';
+  return new Date(iso).toLocaleDateString('it-IT', { day: 'numeric', month: 'short', year: 'numeric' });
+}
+
+function disegnaTabella(lista) {
+  const corpo = $('corpo-tabella');
+  corpo.innerHTML = '';
+  lista.forEach(r => {
+    const donatore = r.anonimo
+      ? '<span class="badge-anonimo">Anonimo</span>'
+      : (r.tipo === 'classe' ? `${r.scuola || 'scuola'} — ${r.donatore}` : r.donatore);
+    const tr = document.createElement('tr');
+    tr.innerHTML = `
+      <td>${r.codice}</td>
+      <td>${r.nome}</td>
+      <td>${r.specie}</td>
+      <td>${donatore}</td>
+      <td>${r.piantatoDa}</td>
+      <td>${formattaData(r.data)}</td>
+      <td>${r.haCertificato ? '<span class="badge-cert">✅ generato</span>' : '—'}</td>
+    `;
+    tr.onclick = () => location.href = `./certificato.html?c=${encodeURIComponent(r.codice)}`;
+    corpo.appendChild(tr);
+  });
+  $('conteggio').textContent = `${lista.length} alberi`;
+}
+
+$('ricerca').addEventListener('input', () => {
+  const q = $('ricerca').value.trim().toLowerCase();
+  const filtrate = !q ? righe : righe.filter(r =>
+    r.nome.toLowerCase().includes(q) || r.donatore.toLowerCase().includes(q) || r.codice.toLowerCase().includes(q)
+  );
+  disegnaTabella(filtrate);
+});
+
+(function ripristinaSessione() {
+  const raw = sessionStorage.getItem('mde_session');
+  if (!raw) return;
+  try { entraConSessione(JSON.parse(raw)); } catch {}
+})();
 </script>
 </body>
 </html>
