@@ -9,9 +9,12 @@
   :root{ --rosso:#B33A3A; --verde:#2E4F2F; --nero:#1A1A1A; }
   *{box-sizing:border-box}
   body{margin:0;font-family:'Work Sans',system-ui,-apple-system,sans-serif;color:var(--nero);display:flex;flex-direction:column;height:100vh}
-  header{background:var(--verde);color:#fff;padding:.7rem 1rem}
+  header{background:var(--verde);color:#fff;padding:.7rem 1rem;display:flex;align-items:center;gap:1rem;flex-wrap:wrap}
   header h1{margin:0;font-size:1.05rem;font-weight:600}
   header p{margin:.2rem 0 0;font-size:.8rem;opacity:.85}
+  header .badge{margin-left:auto;font-size:.75rem;background:rgba(255,255,255,.15);padding:.3rem .7rem;border-radius:20px;display:flex;align-items:center;gap:.4rem}
+  header .badge button{background:none;border:0;color:#fff;opacity:.8;cursor:pointer;font:inherit;text-decoration:underline;padding:0}
+
   main{flex:1;display:flex;min-height:0}
   #map{flex:1;min-width:0}
   aside{width:360px;max-width:45vw;overflow:auto;padding:1rem;border-left:1px solid #ddd;background:#fafaf8}
@@ -23,19 +26,40 @@
   button{border:0;border-radius:6px;padding:.55rem .8rem;font:inherit;font-size:.82rem;font-weight:600;cursor:pointer;background:var(--verde);color:#fff}
   button.sec{background:#e6e6e0;color:var(--nero)}
   button.warn{background:var(--rosso);color:#fff}
+  button:disabled{background:#ccc;cursor:not-allowed}
   .btns{display:flex;gap:.5rem;margin-top:.8rem;flex-wrap:wrap}
   .stat{background:#fff;border:1px solid #e2e2dc;border-radius:8px;padding:.6rem .7rem;margin-top:.8rem;font-size:.82rem;line-height:1.5}
   .stat b{color:var(--verde)}
   .hint{font-size:.76rem;color:#666;margin-top:.5rem;line-height:1.45}
+  .errore{background:#fbe9e7;color:var(--rosso);border:1px solid #f3c6c0;border-radius:6px;padding:.5rem .7rem;font-size:.8rem;margin-top:.6rem}
+  .successo{background:#eaf5e6;color:var(--verde);border:1px solid #c8e6bf;border-radius:6px;padding:.5rem .7rem;font-size:.8rem;margin-top:.6rem}
+
+  .login-wrap{flex:1;display:flex;align-items:center;justify-content:center}
+  .login-card{background:#fff;border-radius:14px;padding:1.8rem 1.6rem;box-shadow:0 4px 20px rgba(0,0,0,.1);max-width:340px;width:100%}
+  .login-card h2{margin:0 0 .3rem;font-size:1.2rem}
+  .login-card p{margin:0 0 1.1rem;font-size:.82rem;color:#666}
+
+  .candidate-lista{margin-top:.6rem;display:flex;flex-direction:column;gap:.5rem}
+  .candidata{background:#fff;border:1px solid #e2e2dc;border-radius:8px;padding:.55rem .7rem;display:flex;justify-content:space-between;align-items:center;gap:.5rem;cursor:pointer}
+  .candidata:hover{border-color:var(--verde)}
+  .candidata .info{font-size:.82rem}
+  .candidata .info b{display:block;color:var(--verde)}
+  .candidata .info span{color:#888;font-size:.74rem}
+  .candidata .elimina{background:none;border:0;color:var(--rosso);font-size:.85rem;padding:.2rem .4rem;cursor:pointer}
+  .vuoto{font-size:.8rem;color:#999;font-style:italic}
+
   @media(max-width:760px){main{flex-direction:column}aside{width:100%;max-width:none;border-left:0;border-top:1px solid #ddd}#map{height:55vh;flex:none}}
 </style>
 </head>
 <body>
 <header>
-  <h1>Disegna le zone di piantumazione</h1>
-  <p>Clicca sulla mappa per tracciare il perimetro. Doppio clic su un vertice per rimuoverlo.</p>
+  <div>
+    <h1>Disegna le zone di piantumazione</h1>
+    <p>Clicca sulla mappa per tracciare il perimetro. Doppio clic su un vertice per rimuoverlo.</p>
+  </div>
 </header>
-<main>
+
+<main id="vista-tool">
   <div id="map"></div>
   <aside>
     <label for="nome">Nome della zona</label>
@@ -67,41 +91,80 @@
       <button id="clear" class="warn">Cancella tutto</button>
     </div>
 
-    <label for="out">JSON / SQL da incollare in Supabase</label>
+    <div class="btns">
+      <button id="salvaCandidata">💾 Salva come candidata</button>
+    </div>
+    <div id="esito-salvataggio"></div>
+
+    <label for="out">JSON / SQL per la zona ufficiale</label>
     <textarea id="out" readonly></textarea>
     <div class="btns">
-      <button id="copyJson">Copia JSON</button>
+      <button id="copyJson" class="sec">Copia JSON</button>
       <button id="copySql" class="sec">Copia SQL</button>
     </div>
 
     <p class="hint">
-      Il JSON va nel campo <code>perimetro</code> della tabella <code>zone</code>.
-      L'SQL crea direttamente la riga. Ripeti l'operazione per ogni lotto:
-      cancella tutto, disegna il successivo, copia di nuovo.
+      "Salva come candidata" la conserva nel database per riprenderla in
+      qualsiasi momento e mostrarla al Sindaco. Copiare l'SQL serve invece
+      solo quando una zona è definitiva e va inserita tra quelle ufficiali
+      usate dal form operatore.
     </p>
+
+    <label>Zone candidate salvate</label>
+    <div class="candidate-lista" id="lista-candidate">
+      <div class="vuoto">Nessuna candidata salvata ancora.</div>
+    </div>
   </aside>
 </main>
 
 <script src="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.js"></script>
 <script>
-const NICOLOSI = [37.6116, 15.0269];
-const map = L.map('map').setView(NICOLOSI, 14);
+const SUPABASE_URL = 'https://kmxevzxzezqqlgontiuy.supabase.co';
+const SUPABASE_ANON_KEY = 'sb_publishable_FGXvu3jHu4Zi5LzPzTR7pA_pORU1nLR';
 
-L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
-  maxZoom: 19, attribution: '© OpenStreetMap contributors'
-}).addTo(map);
+let accessToken = null; // non utilizzato: nessun login in questa pagina, uso diretto
+const $ = id => document.getElementById(id);
 
-// Vista satellitare, più utile per riconoscere le aree percorse dal fuoco
-const sat = L.tileLayer('https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}', {
-  maxZoom: 19, attribution: 'Esri'
-});
-L.control.layers({ 'Mappa': map._layers[Object.keys(map._layers)[0]], 'Satellite': sat }).addTo(map);
+async function supaFetch(path, opts = {}) {
+  const headers = {
+    apikey: SUPABASE_ANON_KEY, 'Content-Type': 'application/json',
+    ...(opts.headers || {}), Authorization: `Bearer ${SUPABASE_ANON_KEY}`
+  };
+  const res = await fetch(`${SUPABASE_URL}${path}`, { ...opts, headers });
+  if (!res.ok) { const t = await res.text().catch(() => ''); throw new Error(t || `Errore ${res.status}`); }
+  const testo = await res.text();
+  return testo ? JSON.parse(testo) : null;
+}
 
+/* ===================== Strumento di disegno ===================== */
+let map, poly, markers;
 let punti = [];
-const poly = L.polygon([], { color: '#2E4F2F', weight: 2, fillOpacity: .25 }).addTo(map);
-const markers = L.layerGroup().addTo(map);
+let mappaAvviata = false;
 
-map.on('click', e => { punti.push([+e.latlng.lat.toFixed(6), +e.latlng.lng.toFixed(6)]); render(); });
+function avviaMappa() {
+  if (mappaAvviata) { setTimeout(() => map.invalidateSize(), 50); return; }
+  mappaAvviata = true;
+
+  const NICOLOSI = [37.6116, 15.0269];
+  map = L.map('map').setView(NICOLOSI, 14);
+
+  const stradale = L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+    maxZoom: 19, attribution: '© OpenStreetMap contributors'
+  }).addTo(map);
+
+  const sat = L.tileLayer('https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}', {
+    maxZoom: 19, attribution: 'Esri'
+  });
+  L.control.layers({ 'Mappa': stradale, 'Satellite': sat }).addTo(map);
+
+  poly = L.polygon([], { color: '#2E4F2F', weight: 2, fillOpacity: .25 }).addTo(map);
+  markers = L.layerGroup().addTo(map);
+
+  map.on('click', e => { punti.push([+e.latlng.lat.toFixed(6), +e.latlng.lng.toFixed(6)]); render(); });
+
+  setTimeout(() => map.invalidateSize(), 50);
+  render();
+}
 
 function render() {
   poly.setLatLngs(punti);
@@ -112,15 +175,14 @@ function render() {
     m.on('dblclick', ev => { L.DomEvent.stop(ev); punti.splice(i, 1); render(); });
   });
   const ha = areaEttari(punti);
-  const sesto = parseFloat(document.getElementById('sesto').value) || 4;
+  const sesto = parseFloat($('sesto').value) || 4;
   const stima = Math.floor((ha * 10000) / (sesto * sesto));
-  document.getElementById('nvert').textContent = punti.length;
-  document.getElementById('area').textContent = ha.toFixed(2);
-  document.getElementById('stima').textContent = stima;
+  $('nvert').textContent = punti.length;
+  $('area').textContent = ha.toFixed(2);
+  $('stima').textContent = stima;
   aggiornaOutput();
 }
 
-// Superficie del poligono con formula dell'area sferica (shoelace su proiezione locale)
 function areaEttari(pts) {
   if (pts.length < 3) return 0;
   const R = 6378137, rad = Math.PI / 180;
@@ -132,33 +194,98 @@ function areaEttari(pts) {
   return Math.abs(s * R * R / 2) / 10000;
 }
 
-function aggiornaOutput() {
-  document.getElementById('out').value = JSON.stringify(punti);
-}
+function aggiornaOutput() { $('out').value = JSON.stringify(punti); }
 
 function sql() {
-  const nome = (document.getElementById('nome').value || 'Zona senza nome').replace(/'/g, "''");
-  const descr = (document.getElementById('descr').value || '').replace(/'/g, "''");
-  const cap = parseInt(document.getElementById('capacita').value) || 0;
+  const nome = ($('nome').value || 'Zona senza nome').replace(/'/g, "''");
+  const descr = ($('descr').value || '').replace(/'/g, "''");
+  const cap = parseInt($('capacita').value) || 0;
   return `insert into public.zone (nome, descrizione, perimetro, capacita, incendiata, attiva)\nvalues (\n  '${nome}',\n  '${descr}',\n  '${JSON.stringify(punti)}'::jsonb,\n  ${cap},\n  true,\n  true\n);`;
 }
 
-document.getElementById('calc').onclick = () => {
-  document.getElementById('capacita').value = document.getElementById('stima').textContent;
-};
-document.getElementById('undo').onclick = () => { punti.pop(); render(); };
-document.getElementById('clear').onclick = () => { punti = []; render(); };
-document.getElementById('sesto').oninput = render;
-document.getElementById('copyJson').onclick = () => copia(JSON.stringify(punti), 'JSON copiato');
-document.getElementById('copySql').onclick = () => { document.getElementById('out').value = sql(); copia(sql(), 'SQL copiato'); };
+$('calc').onclick = () => { $('capacita').value = $('stima').textContent; };
+$('undo').onclick = () => { punti.pop(); render(); };
+$('clear').onclick = () => { punti = []; render(); };
+$('sesto').oninput = render;
+$('copyJson').onclick = () => copia(JSON.stringify(punti), 'JSON copiato');
+$('copySql').onclick = () => { $('out').value = sql(); copia(sql(), 'SQL copiato'); };
 
 function copia(txt, msg) {
   navigator.clipboard.writeText(txt).then(() => alert(msg)).catch(() => {
-    const t = document.getElementById('out'); t.value = txt; t.select(); document.execCommand('copy'); alert(msg);
+    const t = $('out'); t.value = txt; t.select(); document.execCommand('copy'); alert(msg);
   });
 }
 
-render();
+/* ===================== Zone candidate (salvate su Supabase) ===================== */
+async function caricaCandidate() {
+  const lista = $('lista-candidate');
+  try {
+    const dati = await supaFetch('/rest/v1/zone_candidate?select=*&order=creata_il.desc');
+    if (!dati.length) { lista.innerHTML = '<div class="vuoto">Nessuna candidata salvata ancora.</div>'; return; }
+    lista.innerHTML = '';
+    dati.forEach(c => {
+      const div = document.createElement('div');
+      div.className = 'candidata';
+      div.innerHTML = `
+        <div class="info" style="flex:1">
+          <b>${c.nome}</b>
+          <span>${c.capacita_stimata || 0} alberi stimati · ${(c.perimetro || []).length} vertici</span>
+        </div>
+        <button class="elimina" title="Elimina">✕</button>
+      `;
+      div.querySelector('.info').onclick = () => caricaSullaMappa(c);
+      div.querySelector('.elimina').onclick = async (ev) => {
+        ev.stopPropagation();
+        if (!confirm(`Eliminare la candidata "${c.nome}"?`)) return;
+        try { await supaFetch(`/rest/v1/zone_candidate?id=eq.${c.id}`, { method: 'DELETE' }); caricaCandidate(); }
+        catch (e) { alert('Eliminazione non riuscita: ' + e.message); }
+      };
+      lista.appendChild(div);
+    });
+  } catch (e) {
+    lista.innerHTML = '<div class="vuoto">Impossibile caricare le candidate.</div>';
+    console.error(e);
+  }
+}
+
+function caricaSullaMappa(c) {
+  punti = (c.perimetro || []).map(p => [p[0], p[1]]);
+  $('nome').value = c.nome || '';
+  $('descr').value = c.descrizione || '';
+  $('sesto').value = c.sesto_impianto || 4;
+  $('capacita').value = c.capacita_stimata || 0;
+  render();
+  if (punti.length) map.fitBounds(poly.getBounds(), { padding: [40, 40] });
+}
+
+$('salvaCandidata').onclick = async () => {
+  const esito = $('esito-salvataggio');
+  esito.innerHTML = '';
+  if (punti.length < 3) { esito.innerHTML = '<div class="errore">Disegna almeno un triangolo prima di salvare.</div>'; return; }
+  const nome = $('nome').value.trim();
+  if (!nome) { esito.innerHTML = '<div class="errore">Dai un nome alla zona prima di salvarla.</div>'; return; }
+
+  $('salvaCandidata').disabled = true;
+  try {
+    await supaFetch('/rest/v1/zone_candidate', {
+      method: 'POST',
+      body: JSON.stringify({
+        nome, descrizione: $('descr').value.trim() || null,
+        perimetro: punti,
+        sesto_impianto: parseFloat($('sesto').value) || 4,
+        capacita_stimata: parseInt($('capacita').value) || 0
+      })
+    });
+    esito.innerHTML = '<div class="successo">✅ Candidata salvata.</div>';
+    caricaCandidate();
+  } catch (e) {
+    esito.innerHTML = `<div class="errore">Salvataggio non riuscito: ${e.message}</div>`;
+  }
+  $('salvaCandidata').disabled = false;
+};
+
+avviaMappa();
+caricaCandidate();
 </script>
 </body>
 </html>
