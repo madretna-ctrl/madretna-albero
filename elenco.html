@@ -108,9 +108,22 @@ async function supaFetch(path, opts = {}) {
     ...(opts.headers || {}), Authorization: `Bearer ${accessToken || SUPABASE_ANON_KEY}`
   };
   const res = await fetch(`${SUPABASE_URL}${path}`, { ...opts, headers });
+  if (res.status === 401) {
+    sessioneScaduta();
+    throw new Error("Sessione scaduta, effettua di nuovo l'accesso.");
+  }
   if (!res.ok) { const t = await res.text().catch(() => ''); throw new Error(t || `Errore ${res.status}`); }
   const testo = await res.text();
   return testo ? JSON.parse(testo) : null;
+}
+
+function sessioneScaduta() {
+  sessionStorage.removeItem('mde_session');
+  accessToken = null;
+  $('badge-utente').style.display = 'none';
+  $('vista-elenco').style.display = 'none';
+  $('vista-login').style.display = 'block';
+  $('login-errore').innerHTML = '<div class="errore">La sessione è scaduta. Accedi di nuovo per continuare.</div>';
 }
 
 async function login(email, password) {
