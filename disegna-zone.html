@@ -140,6 +140,7 @@ async function supaFetch(path, opts = {}) {
 let map, poly, markers;
 let punti = [];
 let mappaAvviata = false;
+let capacitaModificata = false;
 
 function avviaMappa() {
   if (mappaAvviata) { setTimeout(() => map.invalidateSize(), 50); return; }
@@ -180,6 +181,7 @@ function render() {
   $('nvert').textContent = punti.length;
   $('area').textContent = ha.toFixed(2);
   $('stima').textContent = stima;
+  if (!capacitaModificata) $('capacita').value = stima;
   aggiornaOutput();
 }
 
@@ -203,9 +205,10 @@ function sql() {
   return `insert into public.zone (nome, descrizione, perimetro, capacita, incendiata, attiva)\nvalues (\n  '${nome}',\n  '${descr}',\n  '${JSON.stringify(punti)}'::jsonb,\n  ${cap},\n  true,\n  true\n);`;
 }
 
-$('calc').onclick = () => { $('capacita').value = $('stima').textContent; };
+$('calc').onclick = () => { $('capacita').value = $('stima').textContent; capacitaModificata = false; };
+$('capacita').addEventListener('input', () => { capacitaModificata = true; });
 $('undo').onclick = () => { punti.pop(); render(); };
-$('clear').onclick = () => { punti = []; render(); };
+$('clear').onclick = () => { punti = []; capacitaModificata = false; render(); };
 $('sesto').oninput = render;
 $('copyJson').onclick = () => copia(JSON.stringify(punti), 'JSON copiato');
 $('copySql').onclick = () => { $('out').value = sql(); copia(sql(), 'SQL copiato'); };
@@ -254,6 +257,7 @@ function caricaSullaMappa(c) {
   $('descr').value = c.descrizione || '';
   $('sesto').value = c.sesto_impianto || 4;
   $('capacita').value = c.capacita_stimata || 0;
+  capacitaModificata = true;
   render();
   if (punti.length) map.fitBounds(poly.getBounds(), { padding: [40, 40] });
 }
