@@ -400,14 +400,19 @@ async function disegnaCertificato(dedica) {
     ctx.drawImage(alberoImg, (W - alberoW) / 2, 500, alberoW, alberoH);
   } catch (e) { console.error('Illustrazione albero non caricata', e); }
 
-  // Dedica o motto predefinito
+  // Motto sempre presente, dedica personale sotto (se c'è)
   ctx.textAlign = 'center';
   ctx.fillStyle = '#3a3a3a';
   ctx.font = "italic 400 30px 'Playfair Display'";
-  const frase = dedica
-    ? `"${dedica}"`
-    : '"Dove il fuoco ha segnato la terra, un piccolo albero fa rinascere il bosco"';
-  testoConAndataACapo(ctx, frase, W / 2, 1430, W - 260, 42);
+  const motto = '"Dove il fuoco ha segnato la terra, un piccolo albero fa rinascere il bosco"';
+  const righeMotto = testoConAndataACapo(ctx, motto, W / 2, 1370, W - 340, 42);
+
+  if (dedica) {
+    const yDedica = 1370 + righeMotto * 42 + 26;
+    ctx.font = "italic 700 26px 'Playfair Display'";
+    ctx.fillStyle = '#2d5a27';
+    testoConAndataACapo(ctx, `"${dedica}"`, W / 2, yDedica, W - 340, 36);
+  }
   ctx.textAlign = 'left';
 
   // QR code
