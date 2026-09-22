@@ -4,7 +4,7 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>Certificato di Adozione — Giornata dell'Albero MadrEtna</title>
-<link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@400;700;900&family=DM+Sans:wght@300;400;500;600&family=Yellowtail&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@400;700;900&family=DM+Sans:wght@300;400;500;600&family=Kaushan+Script&display=swap" rel="stylesheet">
 <style>
   :root{
     --verde:#2d5a27; --verde-chiaro:#4a8c3f; --lava:#1a1a1a;
@@ -322,7 +322,7 @@ async function generaQrDataUrl(url) {
 async function disegnaCertificato(dedica) {
   await document.fonts.load("700 60px 'Playfair Display'");
   await document.fonts.load("italic 400 40px 'Playfair Display'");
-  await document.fonts.load("400 44px 'Yellowtail'");
+  await document.fonts.load("400 44px 'Kaushan Script'");
   await document.fonts.ready;
 
   const W = 1240, H = 1754; // proporzioni A4 verticale
@@ -409,7 +409,7 @@ async function disegnaCertificato(dedica) {
   // cosi' il testo non si sovrappone mai alle radici (es. castagno, piu' alto della media)
   ctx.textAlign = 'center';
   ctx.fillStyle = '#3a3a3a';
-  ctx.font = "400 40px 'Yellowtail'";
+  ctx.font = "400 40px 'Kaushan Script'";
   const motto = '"Dove il fuoco ha segnato la terra, un piccolo albero fa rinascere il bosco"';
   const yMotto = yAlbero + alberoH + 70;
   const righeMotto = testoConAndataACapo(ctx, motto, W / 2, yMotto, W - 300, 46);
