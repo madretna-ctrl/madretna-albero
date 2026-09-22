@@ -4,7 +4,7 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>Certificato di Adozione — Giornata dell'Albero MadrEtna</title>
-<link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@400;700;900&family=DM+Sans:wght@300;400;500;600&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@400;700;900&family=DM+Sans:wght@300;400;500;600&family=Yellowtail&display=swap" rel="stylesheet">
 <style>
   :root{
     --verde:#2d5a27; --verde-chiaro:#4a8c3f; --lava:#1a1a1a;
@@ -322,6 +322,7 @@ async function generaQrDataUrl(url) {
 async function disegnaCertificato(dedica) {
   await document.fonts.load("700 60px 'Playfair Display'");
   await document.fonts.load("italic 400 40px 'Playfair Display'");
+  await document.fonts.load("400 44px 'Yellowtail'");
   await document.fonts.ready;
 
   const W = 1240, H = 1754; // proporzioni A4 verticale
@@ -393,22 +394,28 @@ async function disegnaCertificato(dedica) {
   ctx.fillText(alberoCorrente.nome || '—', 460, 460);
 
   // Illustrazione dell'albero
+  const yAlbero = 500;
+  let alberoH = 780; // altezza di riserva se l'immagine non si carica
   try {
     const chiave = chiaveSpecie(specieNomeCorrente);
     const alberoImg = await caricaImmagine(ALBERI_IMG[chiave]);
-    const alberoW = 620, alberoH = alberoW * (alberoImg.height / alberoImg.width);
-    ctx.drawImage(alberoImg, (W - alberoW) / 2, 500, alberoW, alberoH);
+    const alberoW = 620;
+    alberoH = alberoW * (alberoImg.height / alberoImg.width);
+    ctx.drawImage(alberoImg, (W - alberoW) / 2, yAlbero, alberoW, alberoH);
   } catch (e) { console.error('Illustrazione albero non caricata', e); }
 
   // Motto sempre presente, dedica personale sotto (se c'è)
+  // Posizione calcolata dinamicamente in base all'altezza reale dell'illustrazione,
+  // cosi' il testo non si sovrappone mai alle radici (es. castagno, piu' alto della media)
   ctx.textAlign = 'center';
   ctx.fillStyle = '#3a3a3a';
-  ctx.font = "italic 400 30px 'Playfair Display'";
+  ctx.font = "400 40px 'Yellowtail'";
   const motto = '"Dove il fuoco ha segnato la terra, un piccolo albero fa rinascere il bosco"';
-  const righeMotto = testoConAndataACapo(ctx, motto, W / 2, 1370, W - 340, 42);
+  const yMotto = yAlbero + alberoH + 70;
+  const righeMotto = testoConAndataACapo(ctx, motto, W / 2, yMotto, W - 300, 46);
 
   if (dedica) {
-    const yDedica = 1370 + righeMotto * 42 + 26;
+    const yDedica = yMotto + righeMotto * 46 + 26;
     ctx.font = "italic 700 26px 'Playfair Display'";
     ctx.fillStyle = '#2d5a27';
     testoConAndataACapo(ctx, `"${dedica}"`, W / 2, yDedica, W - 340, 36);
