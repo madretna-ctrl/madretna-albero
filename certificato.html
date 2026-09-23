@@ -308,6 +308,16 @@ function testoConAndataACapo(ctx, testo, x, y, larghezzaMax, altezzaRiga) {
   return righe.length;
 }
 
+function adattaFontARiga(ctx, testo, larghezzaMax, famiglia, dimensioneBase, dimensioneMin) {
+  let dimensione = dimensioneBase;
+  ctx.font = `400 ${dimensione}px '${famiglia}'`;
+  while (ctx.measureText(testo).width > larghezzaMax && dimensione > dimensioneMin) {
+    dimensione -= 1;
+    ctx.font = `400 ${dimensione}px '${famiglia}'`;
+  }
+  return dimensione;
+}
+
 async function generaQrDataUrl(url) {
   const box = $('qr-offscreen');
   box.innerHTML = '';
@@ -404,18 +414,20 @@ async function disegnaCertificato(dedica) {
     ctx.drawImage(alberoImg, (W - alberoW) / 2, yAlbero, alberoW, alberoH);
   } catch (e) { console.error('Illustrazione albero non caricata', e); }
 
-  // Motto sempre presente, dedica personale sotto (se c'è)
-  // Posizione calcolata dinamicamente in base all'altezza reale dell'illustrazione,
+  // Motto sempre presente, su una sola riga: la dimensione si riduce automaticamente
+  // finché il testo non entra nella larghezza disponibile.
+  // La Y di partenza resta calcolata in base all'altezza reale dell'illustrazione,
   // cosi' il testo non si sovrappone mai alle radici (es. castagno, piu' alto della media)
   ctx.textAlign = 'center';
   ctx.fillStyle = '#3a3a3a';
-  ctx.font = "400 40px 'Kaushan Script'";
   const motto = '"Dove il fuoco ha segnato la terra, un piccolo albero fa rinascere il bosco"';
+  const larghezzaMottoMax = W - 160;
+  const dimMotto = adattaFontARiga(ctx, motto, larghezzaMottoMax, 'Kaushan Script', 44, 22);
   const yMotto = yAlbero + alberoH + 70;
-  const righeMotto = testoConAndataACapo(ctx, motto, W / 2, yMotto, W - 300, 46);
+  ctx.fillText(motto, W / 2, yMotto);
 
   if (dedica) {
-    const yDedica = yMotto + righeMotto * 46 + 26;
+    const yDedica = yMotto + dimMotto * 0.85 + 34;
     ctx.font = "italic 700 26px 'Playfair Display'";
     ctx.fillStyle = '#2d5a27';
     testoConAndataACapo(ctx, `"${dedica}"`, W / 2, yDedica, W - 340, 36);
@@ -428,11 +440,14 @@ async function disegnaCertificato(dedica) {
     const qrDataUrl = await generaQrDataUrl(urlScheda);
     if (qrDataUrl) {
       const qrImg = await caricaImmagine(qrDataUrl);
-      ctx.drawImage(qrImg, W - 250, H - 300, 150, 150);
-      ctx.font = "400 18px 'DM Sans'";
+      const qrSize = 115;
+      const qrX = W - 100 - qrSize;
+      const qrY = H - 255;
+      ctx.drawImage(qrImg, qrX, qrY, qrSize, qrSize);
+      ctx.font = "400 16px 'DM Sans'";
       ctx.fillStyle = '#555';
       ctx.textAlign = 'center';
-      testoConAndataACapo(ctx, 'SCANSIONA PER LOCALIZZARE IL TUO ALBERO', W - 175, H - 130, 200, 22);
+      testoConAndataACapo(ctx, 'SCANSIONA PER LOCALIZZARE IL TUO ALBERO', qrX + qrSize / 2, qrY + qrSize + 22, 165, 20);
       ctx.textAlign = 'left';
     }
   } catch (e) { console.error('QR code non generato', e); }
