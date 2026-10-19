@@ -20,6 +20,11 @@
   p{color:#555;line-height:1.6;font-size:.95rem}
   .box{background:#fff;border-radius:16px;padding:2rem 1.6rem;box-shadow:0 4px 20px rgba(0,0,0,.06)}
   a.btn{display:inline-block;margin-top:1.4rem;background:var(--verde);color:#fff;text-decoration:none;padding:.7rem 1.4rem;border-radius:10px;font-weight:600;font-size:.9rem}
+  .azioni{display:flex;flex-direction:column;align-items:center;gap:.7rem;margin-top:1.4rem}
+  .azioni a.btn{margin-top:0}
+  a.btn:hover{background:var(--verde-chiaro)}
+  a.btn.alt{background:transparent;color:var(--verde);border:1.5px solid var(--verde)}
+  a.btn.alt:hover{background:#eaf5e6}
 </style>
 </head>
 <body>
@@ -39,8 +44,10 @@
       certificato digitale di adozione.
     </p>
     <p>Questa sezione è in costruzione — sarà attiva prima della Giornata dell'Albero.</p>
-    <br>  <p>Visualizza demo</p>  <a class="btn" href="./scuole-demo-madretna.html">Vai alla Demo dell'area scuola</a>
-    <a class="btn" href="./mappa.html">Vai alla mappa degli alberi</a>
+    <div class="azioni">
+      <a class="btn" href="./scuole-demo-madretna.html">Guarda la demo dell'Area Scuole</a>
+      <a class="btn alt" href="./mappa.html">Vai alla mappa degli alberi</a>
+    </div>
   </div>
 </main>
 </body>
