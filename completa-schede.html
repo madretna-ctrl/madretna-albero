@@ -104,6 +104,22 @@ table.sch input[type=text],table.sch select{padding:5px 6px;font-size:14px}
         </div>
         <p class="nota" style="margin-bottom:0">Compila quello che è uguale per tutti (di solito zona e posizione del gruppo); la specie e la posizione di un singolo alberello si correggono poi nella riga.</p>
       </div>
+      <div class="barra">
+        <p style="margin:0 0 8px;font-weight:600">Foto con posizione (dalla pagina foto-gps)</p>
+        <input id="fotoMulti" type="file" accept="image/*" multiple>
+        <p class="nota" style="margin:8px 0 0">Seleziona insieme tutte le foto della classe. Ogni foto viene abbinata alla sua scheda dal nome del file (codice come 5A-01, oppure nome dell'albero) e porta con sé le coordinate. Controlla gli abbinamenti prima di applicare.</p>
+        <div id="abbWrap" hidden>
+          <div class="tab" style="margin-top:10px"><table class="sch" style="min-width:680px">
+            <thead><tr><th>Foto</th><th>Posizione</th><th>Scheda</th><th>Esito</th></tr></thead>
+            <tbody id="abbCorpo"></tbody></table></div>
+          <div class="azioni"><button id="abbApplica" type="button">Applica foto e posizioni</button><span id="abbRiep" class="nota"></span></div>
+        </div>
+      </div>
+      <div id="avvisoPos" class="barra" style="background:#FFF4DC" hidden>
+        <span id="avvisoPosTesto"></span>
+        <button id="btnDistanzia" type="button" class="sec" style="margin-left:10px">Distanzia le posizioni sovrapposte</button>
+        <p class="nota" style="margin:6px 0 0">Il GPS del telefono sbaglia di qualche metro, quindi alberelli a 3 m di distanza possono risultare nello stesso punto e coprirsi sulla mappa. Il pulsante li dispone a 3 m l'uno dall'altro attorno alla loro posizione media: sono posizioni indicative.</p>
+      </div>
       <div class="tab">
         <table class="sch">
           <thead><tr><th>Codice</th><th>Bambino</th><th>Albero</th><th>Specie</th><th>Zona</th><th>Latitudine</th><th>Longitudine</th><th>Foto</th><th>Stato</th></tr></thead>
@@ -173,6 +189,7 @@ $('selClasse').addEventListener('change', async () => {
       specie: t.specie_id || '', zona: t.zona_id || '', lat: t.lat == null ? '' : String(t.lat), lng: t.lng == null ? '' : String(t.lng),
       foto: t.foto_url || '', pubblicato: !!t.pubblicato, dirty: false };
   });
+  abb = []; $('fotoMulti').value = ''; mostra('abbWrap', false);
   disegna(); mostra('blocco', true);
 });
 
@@ -223,6 +240,7 @@ function riepiloga(){
   const mod = righe.filter(r => r.dirty).length, pr = righe.filter(r => !r.pubblicato && completa(r)).length, pu = righe.filter(r => r.pubblicato).length;
   $('riepilogo').textContent = pu + ' pubblicate · ' + pr + ' pronte da pubblicare' + (mod ? ' · ' + mod + ' modifiche da salvare' : '');
   $('btnSalva').disabled = !mod;
+  controllaPosizioni();
 }
 
 // ----- compilazione di gruppo -----
@@ -273,6 +291,150 @@ async function caricaFoto(i, file){
     msg('msgSalva', 'Foto non caricata: ' + e.message, 'err');
   }
 }
+
+
+// ----- foto di foto-gps.html: abbinamento automatico alla scheda -----
+const normTesto = s => String(s || '').normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLowerCase().replace(/[^a-z0-9]+/g, ' ').trim();
+let abb = [];
+
+// "Daniela-5A_37.616251_15.028598.jpg" -> testo "Daniela-5A", lat, lng
+function leggiNomeFoto(nome){
+  const base = nome.replace(/\.[^.]+$/, '');
+  const m = base.match(/_(-?\d{1,3}\.\d+)_(-?\d{1,3}\.\d+)(?=_|\s*\(\d+\)$|$)/);   // accetta anche "... (1)" aggiunto dal browser
+  return { testo: m ? base.slice(0, m.index) : base, lat: m ? parseFloat(m[1]) : null, lng: m ? parseFloat(m[2]) : null };
+}
+// prima il codice (5A-01), poi il nome dell'albero; restituisce l'indice della riga o -1
+function schedaPerTesto(testo){
+  const mc = testo.match(/(\d{1,2})\s*([A-Za-z])[\s_-]*0*(\d{1,3})(?!\d)/);
+  if(mc){
+    const cod = mc[1] + mc[2].toUpperCase() + '-' + String(mc[3]).padStart(2, '0');
+    const i = righe.findIndex(r => r.codice.toUpperCase() === cod);
+    if(i >= 0) return i;
+  }
+  const t = ' ' + normTesto(testo) + ' ';
+  const cand = [];
+  righe.forEach((r, i) => { const n = normTesto(r.albero); if(n && t.includes(' ' + n + ' ')) cand.push(i); });
+  return cand.length === 1 ? cand[0] : -1;
+}
+function scarti(){
+  abb.forEach(a => { a.scarta = false; });
+  const per = {};
+  abb.forEach(a => { if(a.idx >= 0) (per[a.idx] = per[a.idx] || []).push(a); });
+  Object.values(per).forEach(g => {
+    if(g.length < 2) return;
+    g.sort((x, y) => y.file.lastModified - x.file.lastModified);
+    g.slice(1).forEach(a => { a.scarta = true; });
+  });
+}
+function disegnaAbb(){
+  scarti();
+  const corpo = $('abbCorpo'); corpo.replaceChildren();
+  abb.forEach(a => {
+    const tr = document.createElement('tr');
+    const tdF = document.createElement('td');
+    const im = document.createElement('img'); im.src = a.url; im.className = 'mini'; im.alt = '';
+    tdF.append(im, document.createTextNode(a.file.name)); tr.append(tdF);
+    tr.append(el('td', a.lat != null ? a.lat.toFixed(6) + ', ' + a.lng.toFixed(6) : '—'));
+    const tdS = document.createElement('td'); const s = document.createElement('select');
+    s.append(new Option('— non abbinare —', -1));
+    righe.forEach((r, i) => s.append(new Option(r.codice + ' · ' + r.albero, i)));
+    s.value = a.idx; s.setAttribute('aria-label', 'Scheda per ' + a.file.name);
+    s.onchange = () => { a.idx = Number(s.value); a.esito = ''; disegnaAbb(); };
+    tdS.append(s); tr.append(tdS);
+    tr.append(el('td', a.esito || (a.scarta ? 'Scartata: c\'è una foto più recente' : (a.idx >= 0 ? 'Pronta' : 'Da abbinare'))));
+    corpo.append(tr);
+  });
+  const pronte = abb.filter(a => a.idx >= 0 && !a.scarta && !a.fatta).length;
+  $('abbRiep').textContent = pronte + ' pronte su ' + abb.length + ' foto';
+  $('abbApplica').disabled = !pronte;
+  mostra('abbWrap', abb.length > 0);
+}
+$('fotoMulti').onchange = () => {
+  abb.forEach(a => URL.revokeObjectURL(a.url));
+  abb = [...$('fotoMulti').files].map(f => {
+    const p = leggiNomeFoto(f.name);
+    return { file: f, lat: p.lat, lng: p.lng, idx: schedaPerTesto(p.testo), esito: '', url: URL.createObjectURL(f), fatta: false };
+  });
+  disegnaAbb();
+};
+$('abbApplica').onclick = async () => {
+  $('abbApplica').disabled = true;
+  for(const a of abb){
+    if(a.idx < 0 || a.scarta || a.fatta) continue;
+    const r = righe[a.idx];
+    msg('msgSalva', 'Carico ' + r.codice + '…', 'info');
+    try{
+      const blob = await comprimi(a.file, 1280, 0.75);
+      const path = 'piantumazione/' + r.codice + '-' + Date.now() + '.jpg';
+      const up = await sb.storage.from('alberi').upload(path, blob, { contentType: 'image/jpeg' });
+      if(up.error) throw up.error;
+      const patch = { foto_url: sb.storage.from('alberi').getPublicUrl(path).data.publicUrl };
+      const conPos = a.lat != null && a.lng != null && Math.abs(a.lat) <= 90 && Math.abs(a.lng) <= 180;
+      if(conPos){ patch.lat = a.lat; patch.lng = a.lng; }
+      const u = await sb.from('alberi').update(patch).eq('id', r.id);
+      if(u.error) throw u.error;
+      r.foto = patch.foto_url;
+      if(conPos){ r.lat = String(a.lat); r.lng = String(a.lng); if(r.in_lat) r.in_lat.value = r.lat; if(r.in_lng) r.in_lng.value = r.lng; }
+      fotoCella(a.idx); stato(a.idx);
+      a.fatta = true; a.esito = conPos ? 'Applicata (foto e posizione)' : 'Applicata (solo foto, senza posizione)';
+    }catch(e){
+      if(scaduta(e)) return tornaAlLogin('La sessione è scaduta: accedi di nuovo e ripeti.');
+      a.esito = 'Errore: ' + e.message;
+    }
+    disegnaAbb();
+  }
+  msg('msgSalva', 'Foto applicate. Controlla le righe e poi pubblica le schede complete.', 'ok');
+};
+
+
+// ----- posizioni sovrapposte (il GPS sbaglia di qualche metro, gli alberelli distano 3 m) -----
+const SOGLIA_M = 2, PASSO_M = 3;
+function metri(a, b){
+  const dLat = (a.la - b.la) * 111320, dLng = (a.ln - b.ln) * 111320 * Math.cos(a.la * Math.PI / 180);
+  return Math.hypot(dLat, dLng);
+}
+function gruppiSovrapposti(){
+  const p = righe.map((r, i) => ({ i, la: num(r.lat), ln: num(r.lng) })).filter(x => x.la != null && x.ln != null);
+  const padre = p.map((_, k) => k);
+  const trova = k => (padre[k] === k ? k : (padre[k] = trova(padre[k])));
+  for(let a = 0; a < p.length; a++) for(let b = a + 1; b < p.length; b++) if(metri(p[a], p[b]) < SOGLIA_M) padre[trova(a)] = trova(b);
+  const g = {};
+  p.forEach((x, k) => { const r = trova(k); (g[r] = g[r] || []).push(x); });
+  return Object.values(g).filter(x => x.length > 1);
+}
+// disposizione a griglia, a PASSO_M metri, centrata sulla posizione media del gruppo
+function calcolaDistanziamento(gr){
+  gr = gr.slice().sort((a, b) => righe[a.i].codice.localeCompare(righe[b.i].codice, 'it', { numeric: true }));
+  const la0 = gr.reduce((s, x) => s + x.la, 0) / gr.length, ln0 = gr.reduce((s, x) => s + x.ln, 0) / gr.length;
+  const cols = Math.ceil(Math.sqrt(gr.length)), rows = Math.ceil(gr.length / cols);
+  const gLat = 1 / 111320, gLng = 1 / (111320 * Math.cos(la0 * Math.PI / 180));
+  return gr.map((x, k) => {
+    const est = ((k % cols) - (cols - 1) / 2) * PASSO_M, nord = ((rows - 1) / 2 - Math.floor(k / cols)) * PASSO_M;
+    return { i: x.i, lat: (la0 + nord * gLat).toFixed(6), lng: (ln0 + est * gLng).toFixed(6) };
+  });
+}
+function controllaPosizioni(){
+  const g = gruppiSovrapposti();
+  mostra('avvisoPos', g.length > 0);
+  if(!g.length) return;
+  const n = g.reduce((s, x) => s + x.length, 0);
+  $('avvisoPosTesto').textContent = n + ' alberelli hanno posizioni sovrapposte (meno di ' + SOGLIA_M + ' m): ' +
+    g.map(x => x.map(y => righe[y.i].codice).join(', ')).join(' · ') + '.';
+}
+$('btnDistanzia').onclick = () => {
+  const g = gruppiSovrapposti();
+  if(!g.length) return;
+  const n = g.reduce((s, x) => s + x.length, 0);
+  if(!confirm('Sposto ' + n + ' alberelli di pochi metri, a 3 m l\'uno dall\'altro attorno alla loro posizione media. Poi devi premere «Salva modifiche». Procedo?')) return;
+  g.forEach(gr => calcolaDistanziamento(gr).forEach(p => {
+    const r = righe[p.i];
+    r.lat = p.lat; r.lng = p.lng; r.dirty = true;
+    if(r.in_lat) r.in_lat.value = r.lat;
+    if(r.in_lng) r.in_lng.value = r.lng;
+  }));
+  righe.forEach((_, i) => stato(i));
+  msg('msgSalva', 'Posizioni distanziate per ' + n + ' alberelli. Controlla e premi «Salva modifiche».', 'ok');
+};
 
 // ----- salvataggio e pubblicazione -----
 async function salva(){

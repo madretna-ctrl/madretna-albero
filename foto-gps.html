@@ -69,6 +69,7 @@
         button:active { background: #22c55e; }
         
         canvas { display: none; }
+        .toast { position: fixed; left: 50%; bottom: 150px; transform: translateX(-50%); background: rgba(0,0,0,.8); color: #4ade80; font-size: 13px; padding: 8px 14px; border-radius: 999px; z-index: 20; max-width: 92%; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; display: none; }
     </style>
 </head>
 <body>
@@ -80,11 +81,12 @@
     </div>
 
     <div class="controls">
-        <input type="text" id="userInput" placeholder="Inserisci una descrizione o nota..." maxlength="100">
+        <input type="text" id="userInput" placeholder="Nome albero e classe, es. Daniela 5A" maxlength="100">
         <button id="snapButton">📸 Scatta e Salva Foto</button>
     </div>
 
     <canvas id="canvas"></canvas>
+    <div class="toast" id="toast"></div>
 
     <script>
         const video = document.getElementById('video');
@@ -95,6 +97,7 @@
         const canvas = document.getElementById('canvas');
 
         let currentCoords = "GPS non disponibile";
+        let lastLat = null, lastLon = null;   // numeri, per il nome del file
 
         // 1. Avvia la fotocamera (preferendo la fotocamera posteriore sui telefoni)
         async function initCamera() {
@@ -124,11 +127,13 @@
                         const lon = position.coords.longitude.toFixed(6);
                         const alt = position.coords.altitude ? ` · ${Math.round(position.coords.altitude)} m` : '';
                         currentCoords = `${lat}, ${lon}${alt}`;
+                        lastLat = position.coords.latitude; lastLon = position.coords.longitude;
                         gpsDisplay.textContent = `📍 ${currentCoords}`;
                     },
                     (error) => {
                         gpsDisplay.textContent = "📍 GPS non disponibile";
                         currentCoords = "GPS non disponibile";
+                        lastLat = null; lastLon = null;
                     },
                     { enableHighAccuracy: true, maximumAge: 10000, timeout: 5000 }
                 );
@@ -204,14 +209,29 @@
             // Una sola riga piccola in alto a sinistra: coordinate e, solo se scritta, la nota
             disegnaRiga(ctx, canvas.width, currentCoords, userInput.value.trim());
 
-            // Salva l'immagine generata come file PNG scaricabile
-            const imageURL = canvas.toDataURL('image/png');
-            const link = document.createElement('a');
-            link.href = imageURL;
-            link.download = `foto-geo-${Date.now()}.png`;
-            document.body.appendChild(link);
-            link.click();
-            document.body.removeChild(link);
+            // Salva la foto come JPEG (molto più leggera del PNG). Il nome del file porta nota e coordinate:
+            //   Daniela-5A_37.616251_15.028598.jpg   -> completa-schede.html le abbina da sola alla scheda
+            const nota = userInput.value.trim();
+            const slug = nota.normalize('NFD').replace(/[\u0300-\u036f]/g, '')
+                .replace(/[^A-Za-z0-9]+/g, '-').replace(/^-+|-+$/g, '').slice(0, 40) || 'foto';
+            const pos = (lastLat !== null && lastLon !== null)
+                ? `_${lastLat.toFixed(6)}_${lastLon.toFixed(6)}` : '_senza-gps';
+            const nomeFile = `${slug}${pos}.jpg`;
+
+            canvas.toBlob((blob) => {
+                const url = URL.createObjectURL(blob);
+                const link = document.createElement('a');
+                link.href = url;
+                link.download = nomeFile;
+                document.body.appendChild(link);
+                link.click();
+                document.body.removeChild(link);
+                setTimeout(() => URL.revokeObjectURL(url), 5000);
+                const toast = document.getElementById('toast');
+                toast.textContent = '✔ Salvata: ' + nomeFile;
+                toast.style.display = 'block';
+                setTimeout(() => { toast.style.display = 'none'; }, 3000);
+            }, 'image/jpeg', 0.85);
         });
 
         // Avvio componenti
