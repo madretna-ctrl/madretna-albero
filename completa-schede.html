@@ -1,0 +1,332 @@
+<!doctype html>
+<html lang="it">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="robots" content="noindex">
+<title>Completa le schede · Giornata dell'Albero</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:wght@600&family=Work+Sans:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+:root{
+  --bosco:#2E4F2F; --lavico:#1A1A1A; --etna:#B33A3A; --carta:#F5F7F3; --linea:#D3DACF; --muto:#5B665A; --avviso:#8A5A00; --avviso-bg:#FFF4DC;
+}
+*{box-sizing:border-box}
+body{margin:0;background:var(--carta);color:var(--lavico);font:16px/1.5 "Work Sans",system-ui,sans-serif}
+main{max-width:980px;margin:0 auto;padding:28px 20px 60px}
+h1{font:600 28px/1.2 Fraunces,Georgia,serif;color:var(--bosco);margin:0 0 4px}
+h2{font:600 19px/1.3 Fraunces,Georgia,serif;color:var(--bosco);margin:0 0 10px}
+p{margin:0 0 10px}
+.sub{color:var(--muto);margin-bottom:22px}
+section{background:#fff;border:1px solid var(--linea);border-radius:8px;padding:18px 20px;margin-bottom:16px}
+label{display:block;font-weight:500;margin:0 0 4px}
+input[type=text],input[type=email],input[type=password],select{width:100%;padding:9px 10px;border:1px solid #b9c3b5;border-radius:6px;font:inherit;background:#fff}
+input:focus-visible,select:focus-visible,button:focus-visible{outline:3px solid #7FA77F;outline-offset:1px}
+button{font:inherit;font-weight:600;border:0;border-radius:6px;padding:10px 18px;background:var(--bosco);color:#fff;cursor:pointer}
+button.sec{background:transparent;color:var(--bosco);border:1px solid var(--bosco)}
+button:disabled{opacity:.45;cursor:not-allowed}
+.riga{display:flex;gap:14px;flex-wrap:wrap}
+.riga>div{flex:1 1 220px}
+.msg{padding:10px 12px;border-radius:6px;margin:12px 0 0;font-size:15px}
+.msg.ok{background:#E4F0E2;color:#1F3D20}
+.msg.err{background:#F8E3E3;color:#7A2323}
+.msg.info{background:#EEF1EC;color:var(--muto)}
+.meta{display:flex;gap:26px;flex-wrap:wrap;margin:0 0 14px}
+.meta b{display:block;font-weight:600}
+.meta span{color:var(--muto);font-size:14px}
+.tab{overflow-x:auto;border:1px solid var(--linea);border-radius:6px}
+table{border-collapse:collapse;width:100%;min-width:760px}
+th,td{padding:6px 8px;text-align:left;border-bottom:1px solid #E6EBE3;vertical-align:middle}
+th{background:#EEF2EB;font-weight:600;font-size:14px;position:sticky;top:0}
+td input{padding:6px 8px}
+td.cod{font-variant-numeric:tabular-nums;white-space:nowrap}
+.b{display:inline-block;font-size:13px;padding:2px 8px;border-radius:10px;margin:1px 4px 1px 0}
+.b.warn{background:var(--avviso-bg);color:var(--avviso)}
+.b.err{background:#F8E3E3;color:#7A2323}
+.b.ok{color:var(--muto)}
+.azioni{display:flex;gap:12px;align-items:center;flex-wrap:wrap;margin-top:14px}
+.nota{font-size:14px;color:var(--muto);margin-top:10px}
+.top{display:flex;justify-content:space-between;align-items:flex-start;gap:12px}
+[hidden]{display:none!important}
+
+table.sch{min-width:1040px}
+table.sch td{font-size:14px}
+table.sch input[type=text],table.sch select{padding:5px 6px;font-size:14px}
+.ll{width:96px}
+.mini{width:44px;height:44px;object-fit:cover;border-radius:6px;vertical-align:middle;margin-right:6px;background:#eef2eb}
+.fbtn{display:inline-block;padding:5px 10px;border:1px solid var(--bosco);border-radius:6px;color:var(--bosco);font-weight:600;font-size:13px;cursor:pointer}
+.st{display:inline-block;font-size:12px;padding:2px 8px;border-radius:10px}
+.st.da{background:var(--avviso-bg);color:var(--avviso)}.st.pr{background:#E4F0E2;color:#1F3D20}.st.pu{background:#1F3D20;color:#fff}
+.barra{background:#EEF2EB;border-radius:6px;padding:12px;margin-bottom:14px}
+.barra .riga{align-items:flex-end}
+</style>
+</head>
+<body>
+<main style="max-width:1180px">
+  <div class="top">
+    <div>
+      <h1>Completa le schede degli alberelli</h1>
+      <p class="sub">Dopo la piantumazione: specie, zona, posizione e foto di ogni alberello. Quando una scheda è completa la pubblichi e compare sulla mappa.</p>
+    </div>
+    <div id="sessione" hidden><span id="utente" class="nota"></span> <button class="sec" id="btnEsci" type="button">Esci</button></div>
+  </div>
+
+  <section id="login" hidden>
+    <h2>Accedi</h2>
+    <div class="riga">
+      <div><label for="email">Email</label><input id="email" type="email" autocomplete="username"></div>
+      <div><label for="pwd">Password</label><input id="pwd" type="password" autocomplete="current-password"></div>
+    </div>
+    <div class="azioni"><button id="btnLogin" type="button">Accedi</button></div>
+    <div id="msgLogin" class="msg" hidden></div>
+  </section>
+
+  <div id="app" hidden>
+    <section>
+      <div class="riga">
+        <div style="max-width:340px"><label for="selClasse">Classe</label><select id="selClasse"></select></div>
+        <div><label for="scuola">Scuola (compare nelle adozioni)</label><input id="scuola" type="text" value="IC «Cardinale G. B. Dusmet» di Nicolosi"></div>
+      </div>
+      <div id="msgCarica" class="msg" hidden></div>
+    </section>
+
+    <section id="blocco" hidden>
+      <div class="barra">
+        <p style="margin:0 0 8px;font-weight:600">Per tutta la classe</p>
+        <div class="riga">
+          <div style="max-width:200px"><label for="bSpecie">Specie</label><select id="bSpecie"></select></div>
+          <div style="max-width:200px"><label for="bZona">Zona</label><select id="bZona"></select></div>
+          <div style="max-width:150px"><label for="bLat">Latitudine</label><input id="bLat" type="text" inputmode="decimal"></div>
+          <div style="max-width:150px"><label for="bLng">Longitudine</label><input id="bLng" type="text" inputmode="decimal"></div>
+          <div style="flex:0 0 auto"><button id="bGps" type="button" class="sec">Usa la mia posizione</button></div>
+          <div style="flex:0 0 auto"><button id="bApplica" type="button">Applica ai campi vuoti</button></div>
+        </div>
+        <p class="nota" style="margin-bottom:0">Compila quello che è uguale per tutti (di solito zona e posizione del gruppo); la specie e la posizione di un singolo alberello si correggono poi nella riga.</p>
+      </div>
+      <div class="tab">
+        <table class="sch">
+          <thead><tr><th>Codice</th><th>Bambino</th><th>Albero</th><th>Specie</th><th>Zona</th><th>Latitudine</th><th>Longitudine</th><th>Foto</th><th>Stato</th></tr></thead>
+          <tbody id="corpo"></tbody>
+        </table>
+      </div>
+      <div class="azioni">
+        <button id="btnSalva" type="button" disabled>Salva modifiche</button>
+        <button id="btnPubblica" type="button" class="sec">Salva e pubblica le schede complete</button>
+        <span id="riepilogo" class="nota"></span>
+      </div>
+      <div id="msgSalva" class="msg" hidden></div>
+    </section>
+  </div>
+</main>
+
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.45.4/dist/umd/supabase.min.js"></script>
+<script>
+const SUPABASE_URL = 'https://kmxevzxzezqqlgontiuy.supabase.co';
+const SUPABASE_ANON_KEY = 'sb_publishable_FGXvu3jHu4Zi5LzPzTR7pA_pORU1nLR';
+const sb = supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+const $ = id => document.getElementById(id);
+const mostra = (id, on) => { $(id).hidden = !on; };
+function msg(id, t, tipo){ const e = $(id); e.textContent = t || ''; e.className = 'msg ' + (tipo || 'info'); e.hidden = !t; }
+function el(tag, testo, cls){ const e = document.createElement(tag); if(testo != null) e.textContent = testo; if(cls) e.className = cls; return e; }
+const scaduta = err => err && /jwt|expired/i.test(err.message || '');
+async function tornaAlLogin(t){ await sb.auth.signOut(); mostra('app', false); mostra('sessione', false); mostra('login', true); msg('msgLogin', t, 'info'); }
+
+let classi = [], specie = [], zone = [], righe = [];
+
+async function avvia(){
+  const { data: { session } } = await sb.auth.getSession();
+  if(!session){ mostra('login', true); mostra('app', false); mostra('sessione', false); return; }
+  mostra('login', false); mostra('app', true); mostra('sessione', true);
+  $('utente').textContent = session.user.email;
+  const [c, s, z] = await Promise.all([
+    sb.from('classi').select('id,codice,nome,attiva').order('codice'),
+    sb.from('specie').select('id,nome_comune').eq('attiva', true).order('ordine'),
+    sb.from('zone').select('id,nome').eq('attiva', true).order('nome')
+  ]);
+  const err = c.error || s.error || z.error;
+  if(err){ if(scaduta(err)) return tornaAlLogin('La sessione è scaduta: accedi di nuovo.'); return msg('msgCarica', 'Non riesco a leggere i dati: ' + err.message, 'err'); }
+  classi = c.data.filter(x => x.attiva !== false); specie = s.data; zone = z.data;
+  const sel = $('selClasse'); sel.replaceChildren(new Option('Scegli la classe…', ''));
+  classi.forEach(x => sel.add(new Option(x.nome + ' (' + x.codice + ')', x.id)));
+  riempi($('bSpecie'), specie, 'nome_comune', '— specie —');
+  riempi($('bZona'), zone, 'nome', '— zona —');
+}
+function riempi(sel, lista, campo, vuoto){
+  sel.replaceChildren(new Option(vuoto, ''));
+  lista.forEach(x => sel.add(new Option(x[campo], x.id)));
+}
+
+$('selClasse').addEventListener('change', async () => {
+  mostra('blocco', false); msg('msgCarica', '', 'info'); msg('msgSalva', '', 'info');
+  const id = $('selClasse').value; if(!id) return;
+  const r = await sb.from('alberelli_classe').select('numero,codice,nome_bambino,nome_albero,albero_id').eq('classe_id', id).order('numero');
+  if(r.error){ if(scaduta(r.error)) return tornaAlLogin('La sessione è scaduta: accedi di nuovo.'); return msg('msgCarica', 'Non riesco a leggere gli alberelli: ' + r.error.message, 'err'); }
+  const conScheda = r.data.filter(x => x.albero_id);
+  if(!r.data.length || !conScheda.length) return msg('msgCarica', 'Per questa classe non ci sono ancora schede: importa prima l\'elenco Excel.', 'info');
+  const a = await sb.from('alberi').select('id,specie_id,zona_id,lat,lng,foto_url,pubblicato').in('id', conScheda.map(x => x.albero_id));
+  if(a.error) return msg('msgCarica', 'Non riesco a leggere le schede: ' + a.error.message, 'err');
+  const mappa = {}; a.data.forEach(x => { mappa[x.id] = x; });
+  righe = conScheda.map(x => {
+    const t = mappa[x.albero_id] || {};
+    return { codice: x.codice, bambino: x.nome_bambino, albero: x.nome_albero, id: x.albero_id,
+      specie: t.specie_id || '', zona: t.zona_id || '', lat: t.lat == null ? '' : String(t.lat), lng: t.lng == null ? '' : String(t.lng),
+      foto: t.foto_url || '', pubblicato: !!t.pubblicato, dirty: false };
+  });
+  disegna(); mostra('blocco', true);
+});
+
+const num = v => { const n = parseFloat(String(v).replace(',', '.')); return isNaN(n) ? null : n; };
+const completa = r => !!(r.specie && r.zona && num(r.lat) != null && num(r.lng) != null && Math.abs(num(r.lat)) <= 90 && Math.abs(num(r.lng)) <= 180);
+
+function disegna(){
+  const corpo = $('corpo'); corpo.replaceChildren();
+  righe.forEach((r, i) => {
+    const tr = document.createElement('tr');
+    tr.append(el('td', r.codice, 'cod'), el('td', r.bambino), el('td', r.albero));
+    const camp = (campo, lista, voce) => {
+      const td = document.createElement('td'); const s = document.createElement('select');
+      riempi(s, lista, voce, '—'); s.value = r[campo];
+      s.setAttribute('aria-label', campo + ' ' + r.codice);
+      s.onchange = () => { r[campo] = s.value; r.dirty = true; stato(i); };
+      td.append(s); return td;
+    };
+    tr.append(camp('specie', specie, 'nome_comune'), camp('zona', zone, 'nome'));
+    ['lat', 'lng'].forEach(c => {
+      const td = document.createElement('td'); const inp = document.createElement('input');
+      inp.type = 'text'; inp.className = 'll'; inp.inputMode = 'decimal'; inp.value = r[c];
+      inp.setAttribute('aria-label', c + ' ' + r.codice);
+      inp.oninput = () => { r[c] = inp.value.trim(); r.dirty = true; stato(i); };
+      r['in_' + c] = inp; td.append(inp); tr.append(td);
+    });
+    const tdF = document.createElement('td'); tdF.id = 'foto' + i; tr.append(tdF);
+    const tdS = document.createElement('td'); tdS.id = 'st' + i; tr.append(tdS);
+    corpo.append(tr); fotoCella(i); stato(i);
+  });
+  riepiloga();
+}
+function fotoCella(i){
+  const r = righe[i], td = $('foto' + i); td.replaceChildren();
+  if(r.foto){ const im = document.createElement('img'); im.src = r.foto; im.className = 'mini'; im.alt = 'Foto ' + r.codice; td.append(im); }
+  const lab = el('label', r.foto ? 'Cambia' : 'Aggiungi', 'fbtn'); lab.style.margin = '0';
+  const inp = document.createElement('input'); inp.type = 'file'; inp.accept = 'image/*'; inp.hidden = true;
+  inp.onchange = async () => { if(inp.files[0]) await caricaFoto(i, inp.files[0]); };
+  lab.append(inp); td.append(lab);
+}
+function stato(i){
+  const r = righe[i], td = $('st' + i); td.replaceChildren();
+  const [t, c] = r.pubblicato ? ['Pubblicata', 'pu'] : (completa(r) ? ['Pronta', 'pr'] : ['Da completare', 'da']);
+  td.append(el('span', t, 'st ' + c));
+  riepiloga();
+}
+function riepiloga(){
+  const mod = righe.filter(r => r.dirty).length, pr = righe.filter(r => !r.pubblicato && completa(r)).length, pu = righe.filter(r => r.pubblicato).length;
+  $('riepilogo').textContent = pu + ' pubblicate · ' + pr + ' pronte da pubblicare' + (mod ? ' · ' + mod + ' modifiche da salvare' : '');
+  $('btnSalva').disabled = !mod;
+}
+
+// ----- compilazione di gruppo -----
+$('bGps').onclick = () => {
+  if(!navigator.geolocation) return msg('msgSalva', 'Il browser non supporta la posizione.', 'err');
+  navigator.geolocation.getCurrentPosition(p => { $('bLat').value = p.coords.latitude.toFixed(6); $('bLng').value = p.coords.longitude.toFixed(6); },
+    () => msg('msgSalva', 'Posizione non disponibile: consenti l\'accesso e riprova.', 'err'), { enableHighAccuracy: true, timeout: 15000 });
+};
+$('bApplica').onclick = () => {
+  const sp = $('bSpecie').value, zo = $('bZona').value, la = $('bLat').value.trim(), ln = $('bLng').value.trim();
+  righe.forEach(r => {
+    if(r.pubblicato) return;
+    if(sp && !r.specie){ r.specie = sp; r.dirty = true; }
+    if(zo && !r.zona){ r.zona = zo; r.dirty = true; }
+    if(la && ln && (r.lat === '' || r.lng === '')){ r.lat = la; r.lng = ln; r.dirty = true; }
+  });
+  disegna();
+};
+
+// ----- foto -----
+function comprimi(file, maxLato, qualita){
+  return new Promise((ok, ko) => {
+    const rd = new FileReader();
+    rd.onload = e => { const img = new Image(); img.onload = () => {
+        let { width, height } = img;
+        if(width > height && width > maxLato){ height *= maxLato / width; width = maxLato; } else if(height > maxLato){ width *= maxLato / height; height = maxLato; }
+        const c = document.createElement('canvas'); c.width = width; c.height = height;
+        c.getContext('2d').drawImage(img, 0, 0, width, height); c.toBlob(b => ok(b), 'image/jpeg', qualita); };
+      img.onerror = ko; img.src = e.target.result; };
+    rd.onerror = ko; rd.readAsDataURL(file);
+  });
+}
+async function caricaFoto(i, file){
+  const r = righe[i];
+  msg('msgSalva', 'Carico la foto di ' + r.codice + '…', 'info');
+  try{
+    const blob = await comprimi(file, 1280, 0.75);
+    const path = 'piantumazione/' + r.codice + '-' + Date.now() + '.jpg';
+    const up = await sb.storage.from('alberi').upload(path, blob, { contentType: 'image/jpeg' });
+    if(up.error) throw up.error;
+    const url = sb.storage.from('alberi').getPublicUrl(path).data.publicUrl;
+    const u = await sb.from('alberi').update({ foto_url: url }).eq('id', r.id);
+    if(u.error) throw u.error;
+    r.foto = url; fotoCella(i);
+    msg('msgSalva', 'Foto di ' + r.codice + ' salvata.', 'ok');
+  }catch(e){
+    if(scaduta(e)) return tornaAlLogin('La sessione è scaduta: accedi di nuovo.');
+    msg('msgSalva', 'Foto non caricata: ' + e.message, 'err');
+  }
+}
+
+// ----- salvataggio e pubblicazione -----
+async function salva(){
+  const da = righe.filter(r => r.dirty);
+  for(const r of da){
+    const u = await sb.from('alberi').update({
+      specie_id: r.specie ? Number(r.specie) : null, zona_id: r.zona || null,
+      lat: num(r.lat), lng: num(r.lng)
+    }).eq('id', r.id);
+    if(u.error) throw new Error(r.codice + ': ' + u.error.message);
+    r.dirty = false;
+  }
+  return da.length;
+}
+$('btnSalva').onclick = async () => {
+  $('btnSalva').disabled = true; msg('msgSalva', 'Salvataggio…', 'info');
+  try{ const n = await salva(); righe.forEach((_, i) => stato(i)); msg('msgSalva', 'Salvate ' + n + ' schede.', 'ok'); }
+  catch(e){ if(scaduta(e)) return tornaAlLogin('La sessione è scaduta: accedi di nuovo.'); msg('msgSalva', 'Non salvato: ' + e.message, 'err'); riepiloga(); }
+};
+$('btnPubblica').onclick = async () => {
+  const cl = classi.find(c => c.id === $('selClasse').value);
+  msg('msgSalva', 'Pubblicazione…', 'info');
+  try{
+    await salva();
+    let n = 0;
+    for(const r of righe){
+      if(r.pubblicato || !completa(r)) continue;
+      const ex = await sb.from('adozioni').select('id').eq('albero_id', r.id).limit(1);
+      if(ex.error) throw new Error(r.codice + ': ' + ex.error.message);
+      if(!ex.data.length){
+        const ad = await sb.from('adozioni').insert({ albero_id: r.id, adottante_nome: cl ? cl.nome : r.codice.split('-')[0],
+          adottante_tipo: 'classe', scuola: $('scuola').value.trim() || null, anonimo: false, privacy_accettata: true });
+        if(ad.error) throw new Error(r.codice + ' (adozione): ' + ad.error.message);
+      }
+      const p = await sb.from('alberi').update({ pubblicato: true }).eq('id', r.id);
+      if(p.error) throw new Error(r.codice + ' (pubblicazione): ' + p.error.message);
+      r.pubblicato = true; n++;
+    }
+    righe.forEach((_, i) => stato(i));
+    msg('msgSalva', n ? 'Pubblicate ' + n + ' schede: ora sono sulla mappa.' : 'Nessuna scheda da pubblicare: servono specie, zona e posizione.', n ? 'ok' : 'info');
+  }catch(e){
+    if(scaduta(e)) return tornaAlLogin('La sessione è scaduta: accedi di nuovo.');
+    msg('msgSalva', 'Operazione interrotta: ' + e.message, 'err'); righe.forEach((_, i) => stato(i));
+  }
+};
+
+$('btnLogin').onclick = async () => {
+  msg('msgLogin', '', 'info');
+  const { error } = await sb.auth.signInWithPassword({ email: $('email').value.trim(), password: $('pwd').value });
+  if(error) return msg('msgLogin', 'Accesso non riuscito: ' + error.message, 'err');
+  $('pwd').value = ''; avvia();
+};
+$('btnEsci').onclick = async () => { await sb.auth.signOut(); location.reload(); };
+avvia();
+</script>
+</body>
+</html>
