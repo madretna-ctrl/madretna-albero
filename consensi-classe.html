@@ -1,0 +1,207 @@
+<!doctype html>
+<html lang="it">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="robots" content="noindex">
+<title>Consensi · Giornata dell'Albero</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:wght@600&family=Work+Sans:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+:root{
+  --bosco:#2E4F2F; --lavico:#1A1A1A; --etna:#B33A3A; --carta:#F5F7F3; --linea:#D3DACF; --muto:#5B665A; --avviso:#8A5A00; --avviso-bg:#FFF4DC;
+}
+*{box-sizing:border-box}
+body{margin:0;background:var(--carta);color:var(--lavico);font:16px/1.5 "Work Sans",system-ui,sans-serif}
+main{max-width:980px;margin:0 auto;padding:28px 20px 60px}
+h1{font:600 28px/1.2 Fraunces,Georgia,serif;color:var(--bosco);margin:0 0 4px}
+h2{font:600 19px/1.3 Fraunces,Georgia,serif;color:var(--bosco);margin:0 0 10px}
+p{margin:0 0 10px}
+.sub{color:var(--muto);margin-bottom:22px}
+section{background:#fff;border:1px solid var(--linea);border-radius:8px;padding:18px 20px;margin-bottom:16px}
+label{display:block;font-weight:500;margin:0 0 4px}
+input[type=text],input[type=email],input[type=password],select{width:100%;padding:9px 10px;border:1px solid #b9c3b5;border-radius:6px;font:inherit;background:#fff}
+input:focus-visible,select:focus-visible,button:focus-visible{outline:3px solid #7FA77F;outline-offset:1px}
+button{font:inherit;font-weight:600;border:0;border-radius:6px;padding:10px 18px;background:var(--bosco);color:#fff;cursor:pointer}
+button.sec{background:transparent;color:var(--bosco);border:1px solid var(--bosco)}
+button:disabled{opacity:.45;cursor:not-allowed}
+.riga{display:flex;gap:14px;flex-wrap:wrap}
+.riga>div{flex:1 1 220px}
+.msg{padding:10px 12px;border-radius:6px;margin:12px 0 0;font-size:15px}
+.msg.ok{background:#E4F0E2;color:#1F3D20}
+.msg.err{background:#F8E3E3;color:#7A2323}
+.msg.info{background:#EEF1EC;color:var(--muto)}
+.meta{display:flex;gap:26px;flex-wrap:wrap;margin:0 0 14px}
+.meta b{display:block;font-weight:600}
+.meta span{color:var(--muto);font-size:14px}
+.tab{overflow-x:auto;border:1px solid var(--linea);border-radius:6px}
+table{border-collapse:collapse;width:100%;min-width:760px}
+th,td{padding:6px 8px;text-align:left;border-bottom:1px solid #E6EBE3;vertical-align:middle}
+th{background:#EEF2EB;font-weight:600;font-size:14px;position:sticky;top:0}
+td input{padding:6px 8px}
+td.cod{font-variant-numeric:tabular-nums;white-space:nowrap}
+.b{display:inline-block;font-size:13px;padding:2px 8px;border-radius:10px;margin:1px 4px 1px 0}
+.b.warn{background:var(--avviso-bg);color:var(--avviso)}
+.b.err{background:#F8E3E3;color:#7A2323}
+.b.ok{color:var(--muto)}
+.azioni{display:flex;gap:12px;align-items:center;flex-wrap:wrap;margin-top:14px}
+.nota{font-size:14px;color:var(--muto);margin-top:10px}
+.top{display:flex;justify-content:space-between;align-items:flex-start;gap:12px}
+[hidden]{display:none!important}
+</style>
+</head>
+<body>
+<main>
+  <div class="top">
+    <div>
+      <h1>Consensi sul nome dei bambini</h1>
+      <p class="sub">Spunta chi ha riconsegnato il modulo con «Acconsento». Solo per loro il nome di battesimo comparirà sulla mappa pubblica; per gli altri comparirà «Classe 5A».</p>
+    </div>
+    <div id="sessione" hidden><span id="utente" class="nota"></span> <button class="sec" id="btnEsci" type="button">Esci</button></div>
+  </div>
+
+  <section id="login" hidden>
+    <h2>Accedi</h2>
+    <div class="riga">
+      <div><label for="email">Email</label><input id="email" type="email" autocomplete="username"></div>
+      <div><label for="pwd">Password</label><input id="pwd" type="password" autocomplete="current-password"></div>
+    </div>
+    <div class="azioni"><button id="btnLogin" type="button">Accedi</button></div>
+    <div id="msgLogin" class="msg" hidden></div>
+  </section>
+
+  <div id="app" hidden>
+    <section>
+      <div class="riga" style="margin-bottom:14px">
+        <div style="max-width:380px">
+          <label for="selClasse">Classe</label>
+          <select id="selClasse"></select>
+        </div>
+      </div>
+      <div id="msgCarica" class="msg" hidden></div>
+      <div id="blocco" hidden>
+        <div class="tab">
+          <table>
+            <thead><tr><th>N.</th><th>Codice</th><th>Nome del bambino</th><th>Nome dell'albero</th><th>Consenso al nome</th></tr></thead>
+            <tbody id="corpo"></tbody>
+          </table>
+        </div>
+        <div class="azioni">
+          <button id="btnSalva" type="button" disabled>Salva consensi</button>
+          <button id="btnTutti" type="button" class="sec">Seleziona tutti</button>
+          <button id="btnNessuno" type="button" class="sec">Deseleziona tutti</button>
+          <span id="riepilogo" class="nota"></span>
+        </div>
+        <div id="msgSalva" class="msg" hidden></div>
+      </div>
+    </section>
+  </div>
+</main>
+
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.45.4/dist/umd/supabase.min.js"></script>
+<script>
+// ====== CONFIGURAZIONE: stessi valori delle altre pagine dell'app ======
+const SUPABASE_URL = 'https://kmxevzxzezqqlgontiuy.supabase.co';
+const SUPABASE_ANON_KEY = 'sb_publishable_FGXvu3jHu4Zi5LzPzTR7pA_pORU1nLR';
+// ========================================================================
+const sb = supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+const $ = id => document.getElementById(id);
+const mostra = (id, on) => { $(id).hidden = !on; };
+function msg(id, testo, tipo){ const e = $(id); e.textContent = testo || ''; e.className = 'msg ' + (tipo || 'info'); e.hidden = !testo; }
+function cella(tag, testo, cls){ const e = document.createElement(tag); if(testo != null) e.textContent = testo; if(cls) e.className = cls; return e; }
+function sessioneScaduta(err){ return err && /jwt|expired/i.test(err.message || ''); }
+async function tornaAlLogin(testo){
+  await sb.auth.signOut();
+  mostra('app', false); mostra('sessione', false); mostra('login', true);
+  msg('msgLogin', testo, 'info');
+}
+
+let righe = [];   // {codice, bambino, albero, numero, iniziale, attuale}
+
+async function avvia(){
+  const { data: { session } } = await sb.auth.getSession();
+  if(!session){ mostra('login', true); mostra('app', false); mostra('sessione', false); return; }
+  mostra('login', false); mostra('app', true); mostra('sessione', true);
+  $('utente').textContent = session.user.email;
+  const rc = await sb.from('classi').select('id,codice,nome,attiva').order('codice');
+  if(rc.error){
+    if(sessioneScaduta(rc.error)) return tornaAlLogin('La sessione è scaduta: accedi di nuovo.');
+    return msg('msgCarica', 'Non riesco a leggere le classi: ' + rc.error.message, 'err');
+  }
+  const sel = $('selClasse');
+  sel.replaceChildren(new Option('Scegli la classe…', ''));
+  rc.data.filter(c => c.attiva !== false).forEach(c => sel.add(new Option(c.nome + ' (' + c.codice + ')', c.id)));
+}
+
+$('selClasse').addEventListener('change', async () => {
+  mostra('blocco', false); msg('msgCarica', '', 'info'); msg('msgSalva', '', 'info');
+  const id = $('selClasse').value;
+  if(!id) return;
+  const r = await sb.from('alberelli_classe').select('numero,codice,nome_bambino,nome_albero,consenso_nome').eq('classe_id', id).order('numero');
+  if(r.error){
+    if(sessioneScaduta(r.error)) return tornaAlLogin('La sessione è scaduta: accedi di nuovo.');
+    return msg('msgCarica', 'Non riesco a leggere gli alberelli: ' + r.error.message + ' (hai eseguito lo script SQL «consenso-nome-bambini»?)', 'err');
+  }
+  if(!r.data.length) return msg('msgCarica', 'Per questa classe non ci sono ancora alberelli: importa prima l\'elenco Excel.', 'info');
+  righe = r.data.map(x => ({ codice: x.codice, numero: x.numero, bambino: x.nome_bambino, albero: x.nome_albero, iniziale: !!x.consenso_nome, attuale: !!x.consenso_nome }));
+  disegna();
+  mostra('blocco', true);
+});
+
+function disegna(){
+  const corpo = $('corpo');
+  corpo.replaceChildren();
+  righe.forEach(r => {
+    const tr = document.createElement('tr');
+    tr.append(cella('td', r.numero), cella('td', r.codice, 'cod'), cella('td', r.bambino), cella('td', r.albero));
+    const td = document.createElement('td');
+    const cb = document.createElement('input');
+    cb.type = 'checkbox'; cb.checked = r.attuale; cb.style.width = '20px'; cb.style.height = '20px';
+    cb.setAttribute('aria-label', 'Consenso al nome per ' + r.bambino + ' (' + r.codice + ')');
+    cb.addEventListener('change', () => { r.attuale = cb.checked; riepiloga(); });
+    r.cb = cb;
+    td.append(cb); tr.append(td); corpo.append(tr);
+  });
+  riepiloga();
+}
+function riepiloga(){
+  const si = righe.filter(r => r.attuale).length;
+  const mod = righe.filter(r => r.attuale !== r.iniziale).length;
+  $('riepilogo').textContent = si + ' su ' + righe.length + ' con consenso' + (mod ? ' · ' + mod + ' modifiche da salvare' : '');
+  $('btnSalva').disabled = !mod;
+}
+$('btnTutti').addEventListener('click', () => { righe.forEach(r => { r.attuale = true; r.cb.checked = true; }); riepiloga(); });
+$('btnNessuno').addEventListener('click', () => { righe.forEach(r => { r.attuale = false; r.cb.checked = false; }); riepiloga(); });
+
+$('btnSalva').addEventListener('click', async () => {
+  const cambiate = righe.filter(r => r.attuale !== r.iniziale);
+  if(!cambiate.length) return;
+  $('btnSalva').disabled = true;
+  msg('msgSalva', 'Salvataggio in corso…', 'info');
+  const adesso = new Date().toISOString();
+  const esiti = await Promise.all(cambiate.map(r =>
+    sb.from('alberelli_classe').update({ consenso_nome: r.attuale, aggiornato_il: adesso }).eq('codice', r.codice)));
+  const errore = esiti.find(e => e.error);
+  if(errore){
+    if(sessioneScaduta(errore.error)) return tornaAlLogin('La sessione è scaduta: accedi di nuovo e ripeti il salvataggio.');
+    riepiloga();
+    return msg('msgSalva', 'Alcune modifiche non sono state salvate: ' + errore.error.message, 'err');
+  }
+  cambiate.forEach(r => { r.iniziale = r.attuale; });
+  riepiloga();
+  msg('msgSalva', 'Salvate ' + cambiate.length + ' modifiche. Sulla mappa il nome compare per chi ha il consenso, per gli altri compare solo la classe.', 'ok');
+});
+
+$('btnLogin').addEventListener('click', async () => {
+  msg('msgLogin', '', 'info');
+  const { error } = await sb.auth.signInWithPassword({ email: $('email').value.trim(), password: $('pwd').value });
+  if(error) return msg('msgLogin', 'Accesso non riuscito: ' + error.message, 'err');
+  $('pwd').value = '';
+  avvia();
+});
+$('btnEsci').addEventListener('click', async () => { await sb.auth.signOut(); location.reload(); });
+avvia();
+</script>
+</body>
+</html>

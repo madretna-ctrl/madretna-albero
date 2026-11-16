@@ -148,7 +148,7 @@ function formattaData(iso) {
     stato.style.display = 'none';
     document.getElementById('scheda').style.display = 'block';
 
-    document.getElementById('nome').textContent = a.nome || 'Albero senza nome';
+    document.getElementById('nome').textContent = a.nome_visualizzato || a.nome || 'Albero senza nome';
     document.getElementById('specie').textContent = a.specie || '—';
     document.getElementById('zona').textContent = a.zona || '—';
     document.getElementById('donatore').textContent = a.adottante_anonimo

@@ -142,7 +142,7 @@ async function supaGet(path) {
 }
 
 function popupAlbero(a) {
-  const foto = a.foto_url ? `<img src="${a.foto_url}" alt="${a.nome}">` : '';
+  const foto = a.foto_url ? `<img src="${a.foto_url}" alt="${a.nome_visualizzato || a.nome}">` : '';
   const donatore = a.adottante_anonimo
     ? 'Donatore anonimo'
     : (a.adottante_tipo === 'classe'
@@ -151,7 +151,7 @@ function popupAlbero(a) {
   const rigaDonatore = donatore ? `<p>Donato da: ${donatore}</p>` : '';
   const rigaPiantato = a.piantato_da ? `<p>Piantato da: ${a.piantato_da}</p>` : '';
   return `<div class="popup">
-    <h3>${a.nome || 'Albero senza nome'}</h3>
+    <h3>${a.nome_visualizzato || a.nome || 'Albero senza nome'}</h3>
     <p class="specie">${a.specie || ''}</p>
     ${rigaDonatore}
     ${rigaPiantato}
@@ -215,7 +215,7 @@ function vaiAllAlbero(a) {
   const m = marker[a.codice];
   if (m) setTimeout(() => m.openPopup(), 500);
   box.classList.remove('aperto');
-  input.value = a.nome || '';
+  input.value = a.nome_visualizzato || a.nome || '';
 }
 
 input.addEventListener('input', () => {
@@ -234,7 +234,7 @@ input.addEventListener('input', () => {
   } else {
     risultati.slice(0, 8).forEach(a => {
       const b = document.createElement('button');
-      b.innerHTML = `<b>${a.nome}</b> — ${a.specie || ''} <span style="color:#888">(${a.zona || 'zona non indicata'})</span>`;
+      b.innerHTML = `<b>${a.nome_visualizzato || a.nome}</b> — ${a.specie || ''} <span style="color:#888">(${a.zona || 'zona non indicata'})</span>`;
       b.onclick = () => vaiAllAlbero(a);
       box.appendChild(b);
     });

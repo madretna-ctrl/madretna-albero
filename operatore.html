@@ -126,6 +126,18 @@
     <div class="form-card">
       <h3>🌳 Dati dell'albero</h3>
 
+      <div class="sezione" id="sez-alberello">
+        <div class="campo">
+          <label for="f-classe">Alberello di una classe (solo per le scuole)</label>
+          <select id="f-classe"><option value="">— Non è l'alberello di una classe —</option></select>
+        </div>
+        <div class="campo" id="campo-alberello" style="display:none">
+          <label for="f-alberello">Alberello</label>
+          <select id="f-alberello"><option value="">— Scegli il codice —</option></select>
+          <small>Compila da solo nome, tipo di adozione e «piantato da». Poi rileva il GPS, scegli specie e zona e scatta la foto.</small>
+        </div>
+      </div>
+
       <div class="sezione">
         <div class="campo">
           <label for="f-nome">Nome dato all'albero *</label>
@@ -344,7 +356,56 @@ async function caricaSpecieEZone() {
   } catch (e) {
     console.error('Errore nel caricamento di specie/zone', e);
   }
+  caricaClassiScuola();
 }
+
+/* ---------- Alberelli di classe (elenchi importati da Excel) ---------- */
+const SCUOLA_PREDEFINITA = 'IC «Cardinale G. B. Dusmet» di Nicolosi'; // modificabile nel campo «Nome della scuola»
+let classiScuola = [];
+let alberelliClasse = [];
+let alberelloScelto = null;
+
+async function caricaClassiScuola() {
+  try {
+    classiScuola = await supaFetch('/rest/v1/classi?select=id,codice,nome&attiva=eq.true&order=codice');
+    const sel = $('f-classe');
+    sel.length = 1;
+    classiScuola.forEach(c => sel.add(new Option(c.nome, c.id)));
+  } catch (e) {
+    console.error('Classi non caricate', e);
+    $('sez-alberello').style.display = 'none'; // il modulo funziona come prima
+  }
+}
+
+async function caricaAlberelli() {
+  const classeId = $('f-classe').value;
+  alberelloScelto = null;
+  const sel = $('f-alberello');
+  sel.length = 1;
+  $('campo-alberello').style.display = classeId ? 'block' : 'none';
+  if (!classeId) return;
+  try {
+    alberelliClasse = await supaFetch(`/rest/v1/alberelli_classe?select=id,codice,numero,nome_albero&classe_id=eq.${classeId}&albero_id=is.null&order=numero`);
+    alberelliClasse.forEach(a => sel.add(new Option(`${a.codice} · ${a.nome_albero}`, a.id)));
+    sel.options[0].textContent = alberelliClasse.length ? '— Scegli il codice —' : 'Nessun alberello da piantare';
+  } catch (e) {
+    console.error('Alberelli non caricati', e);
+    sel.options[0].textContent = 'Elenco non disponibile';
+  }
+}
+$('f-classe').addEventListener('change', caricaAlberelli);
+
+$('f-alberello').addEventListener('change', () => {
+  alberelloScelto = alberelliClasse.find(a => a.id === $('f-alberello').value) || null;
+  if (!alberelloScelto) return;
+  const classe = classiScuola.find(c => c.id === $('f-classe').value);
+  $('f-nome').value = alberelloScelto.nome_albero;
+  $('f-tipo').value = 'classe';
+  $('f-tipo').dispatchEvent(new Event('change'));
+  $('f-adottante').value = classe ? classe.nome : '';
+  if (!$('f-scuola').value) $('f-scuola').value = SCUOLA_PREDEFINITA;
+  $('f-piantato-da').value = 'Classe ' + alberelloScelto.codice.split('-')[0];
+});
 
 $('f-tipo').addEventListener('change', () => {
   $('campo-scuola').style.display = $('f-tipo').value === 'classe' ? 'block' : 'none';
@@ -462,8 +523,26 @@ $('btn-invia').onclick = async () => {
       })
     });
 
+    // 4) alberello di una classe: collega l'albero all'elenco e assegnalo alla classe (come nel pannello Scuole)
+    var avvisoClasse = '';
+    if (alberelloScelto) {
+      try {
+        await supaFetch(`/rest/v1/alberelli_classe?id=eq.${alberelloScelto.id}`, {
+          method: 'PATCH',
+          body: JSON.stringify({ albero_id: albero.id, aggiornato_il: new Date().toISOString() })
+        });
+        await supaFetch('/rest/v1/rpc/scuola_assegna', {
+          method: 'POST',
+          body: JSON.stringify({ p_classe: $('f-classe').value, p_alberi: [albero.id] })
+        });
+      } catch (e) {
+        console.error(e);
+        avvisoClasse = ' — attenzione: albero registrato, ma il collegamento alla classe non è completo (controlla nel pannello Scuole)';
+      }
+    }
+
     stato.style.display = 'block';
-    stato.textContent = `✅ Albero "${nome}" registrato con codice ${albero.codice}`;
+    stato.textContent = `✅ Albero "${nome}" registrato con codice ${albero.codice}${avvisoClasse}`;
     resettaForm();
   } catch (e) {
     err.innerHTML = `<div class="errore">Registrazione non riuscita: ${e.message}</div>`;
@@ -474,6 +553,7 @@ $('btn-invia').onclick = async () => {
 };
 
 function resettaForm() {
+  alberelloScelto = null; $('f-alberello').value = '';
   ['f-nome','f-adottante','f-scuola','f-email','f-piantato-da'].forEach(id => $(id).value = '');
   $('f-specie').value = ''; $('f-zona').value = ''; $('f-tipo').value = '';
   $('f-privacy').checked = false;
@@ -484,6 +564,7 @@ function resettaForm() {
   $('f-foto').value = '';
   fotoCompressa = null;
   coordinate = null;
+  if ($('f-classe').value) caricaAlberelli();
   $('gps-box').classList.remove('ok');
   $('gps-testo').textContent = 'Rileva la posizione esatta dell\'albero appena piantato';
   $('gps-coord').textContent = '';
