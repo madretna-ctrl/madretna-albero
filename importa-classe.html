@@ -56,7 +56,7 @@ td.cod{font-variant-numeric:tabular-nums;white-space:nowrap}
   <div class="top">
     <div>
       <h1>Importa elenco di una classe</h1>
-      <p class="sub">Giornata dell'Albero · carica il file Excel compilato dalle maestre e salva gli alberelli della classe.</p>
+      <p class="sub">Giornata dell'Albero · carica il file Excel compilato dalle maestre: per ogni bambino si crea la scheda dell'alberello, già assegnata alla classe.</p>
     </div>
     <div id="sessione" hidden><span id="utente" class="nota"></span> <button class="sec" id="btnEsci" type="button">Esci</button></div>
   </div>
@@ -92,6 +92,10 @@ td.cod{font-variant-numeric:tabular-nums;white-space:nowrap}
           <label for="selClasse">Classe nel database</label>
           <select id="selClasse"></select>
         </div>
+        <div style="max-width:240px">
+          <label for="dataPiant">Data di piantumazione</label>
+          <input id="dataPiant" type="date" value="2026-11-23">
+        </div>
       </div>
       <div class="tab">
         <table>
@@ -99,9 +103,9 @@ td.cod{font-variant-numeric:tabular-nums;white-space:nowrap}
           <tbody id="corpo"></tbody>
         </table>
       </div>
-      <p class="nota">Puoi correggere maiuscole e refusi direttamente nelle celle. Sul certificato compare sempre il nome semplice dell'albero, senza classe. «Nome nella ricerca» è il nome con cui l'albero si distingue dagli omonimi.</p>
+      <p class="nota">Puoi correggere maiuscole e refusi direttamente nelle celle. Le schede restano non pubbliche (niente mappa e contatori) finché non le completi con specie, zona e posizione. Sul certificato compare sempre il nome semplice dell'albero, senza classe. «Nome nella ricerca» è il nome con cui l'albero si distingue dagli omonimi.</p>
       <div class="azioni">
-        <button id="btnImporta" type="button" disabled>Salva nel database</button>
+        <button id="btnImporta" type="button" disabled>Crea le schede degli alberelli</button>
         <span id="riepilogo" class="nota"></span>
       </div>
       <div id="msgImporta" class="msg" hidden></div>
@@ -320,30 +324,69 @@ $('selClasse').addEventListener('change', () => { if(file) aggiorna(); });
 // ---------- salvataggio ----------
 $('btnImporta').addEventListener('click', async () => {
   const classeId = $('selClasse').value;
+  const dataPiant = $('dataPiant').value;
   if(!classeId || !analisi.length) return;
+  if(!dataPiant) return msg('msgImporta', 'Indica la data di piantumazione.', 'err');
+  const cc = codiceClasse(file.classe);
   $('btnImporta').disabled = true;
-  msg('msgImporta', 'Salvataggio in corso…', 'info');
+  msg('msgImporta', 'Creazione delle schede in corso…', 'info');
   const adesso = new Date().toISOString();
-  const payload = righe.map((r, i) => ({
-    classe_id: classeId,
-    numero: r.numero,
-    codice: analisi[i].codice,
-    nome_bambino: r.bambino,
-    nome_albero: r.albero,
-    aggiornato_il: adesso
-  }));
-  const { error } = await sb.from('alberelli_classe').upsert(payload, { onConflict: 'codice' });
-  if(error){
+  const passo = t => msg('msgImporta', t, 'info');
+  try{
+    // 1) elenco della classe (i consensi già dati non vengono toccati)
+    const payload = righe.map((r, i) => ({
+      classe_id: classeId, numero: r.numero, codice: analisi[i].codice,
+      nome_bambino: r.bambino, nome_albero: r.albero, aggiornato_il: adesso
+    }));
+    const up = await sb.from('alberelli_classe').upsert(payload, { onConflict: 'codice' })
+      .select('id,codice,nome_albero,albero_id');
+    if(up.error) throw up.error;
+
+    // 2) una scheda (albero non pubblicato) per ogni alberello che non ce l'ha ancora
+    let nuove = 0, aggiornate = 0;
+    const idAlberi = [];
+    const conScheda = up.data.filter(r => r.albero_id);
+    let nomiAttuali = {};
+    if(conScheda.length){
+      const q = await sb.from('alberi').select('id,nome').in('id', conScheda.map(r => r.albero_id));
+      if(q.error) throw q.error;
+      q.data.forEach(a => { nomiAttuali[a.id] = a.nome; });
+    }
+    for(const r of up.data){
+      if(r.albero_id){
+        idAlberi.push(r.albero_id);
+        if(nomiAttuali[r.albero_id] !== r.nome_albero){
+          const u = await sb.from('alberi').update({ nome: r.nome_albero }).eq('id', r.albero_id);
+          if(u.error) throw u.error;
+          aggiornate++;
+        }
+        continue;
+      }
+      passo('Creo la scheda ' + r.codice + '…');
+      const ins = await sb.from('alberi').insert({
+        nome: r.nome_albero, piantato_da: 'Classe ' + cc, pubblicato: false, data_piantumazione: dataPiant
+      }).select('id').single();
+      if(ins.error) throw new Error('Scheda ' + r.codice + ': ' + ins.error.message);
+      const lk = await sb.from('alberelli_classe').update({ albero_id: ins.data.id }).eq('id', r.id);
+      if(lk.error) throw new Error('Scheda ' + r.codice + ' creata ma non collegata: ' + lk.error.message);
+      idAlberi.push(ins.data.id);
+      nuove++;
+    }
+
+    // 3) assegna le schede alla classe (stessa funzione del pannello Scuole)
+    passo('Assegno le schede alla classe…');
+    const as = await sb.rpc('scuola_assegna', { p_classe: classeId, p_alberi: idAlberi });
+    if(as.error) throw new Error('Schede create ma non assegnate alla classe: ' + as.error.message);
+
+    msg('msgImporta', 'Fatto: ' + nuove + ' schede create, ' + aggiornate + ' aggiornate, ' + idAlberi.length +
+        ' assegnate alla classe ' + cc + '. Le trovi nel pannello Scuole (Alberi della classe). Sono ancora non pubbliche: completale con «completa-schede.html». Puoi ricaricare lo stesso file corretto senza creare doppioni.', 'ok');
+    await caricaEsistenti();
+    aggiorna();
+  }catch(e){
     $('btnImporta').disabled = false;
-    if(sessioneScaduta(error)) return tornaAlLogin('La sessione è scaduta: accedi di nuovo e ripeti il caricamento.');
-    return msg('msgImporta', 'Non è stato salvato nulla: ' + error.message, 'err');
+    if(sessioneScaduta(e)) return tornaAlLogin('La sessione è scaduta: accedi di nuovo e ripeti il caricamento.');
+    msg('msgImporta', 'Operazione interrotta: ' + e.message + ' Puoi ripetere il caricamento: le schede già create non vengono duplicate.', 'err');
   }
-  const cnt = await sb.from('alberelli_classe').select('id', { count: 'exact', head: true }).eq('classe_id', classeId);
-  msg('msgImporta', 'Salvati ' + payload.length + ' alberelli della classe ' + codiceClasse(file.classe) +
-      (cnt.count != null ? '. In archivio per questa classe: ' + cnt.count + '.' : '.') +
-      ' Puoi ricaricare lo stesso file corretto: i codici già presenti vengono aggiornati, non duplicati.', 'ok');
-  await caricaEsistenti();
-  aggiorna();
 });
 
 // ---------- accesso ----------
