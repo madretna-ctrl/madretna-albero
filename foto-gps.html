@@ -2,17 +2,31 @@
 <html lang="it">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <title>CamGeo Snap</title>
     <style>
         * { box-sizing: border-box; margin: 0; padding: 0; }
-        body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; background: #000; color: #fff; display: flex; flex-direction: column; height: 100vh; height: 100dvh; overflow: hidden; }
+        html, body { width: 100%; height: 100%; height: 100dvh; background: #000; color: #fff; overflow: hidden; position: fixed; }
         
-        /* Contenitore principale della fotocamera */
-        .camera-container { position: relative; flex: 1; width: 100%; display: flex; justify-content: center; align-items: center; background: #111; overflow: hidden; }
+        body {
+            display: flex;
+            flex-direction: column;
+        }
+
+        /* Contenitore della fotocamera: occupa tutto lo spazio disponibile rimanente */
+        .camera-container { 
+            position: relative; 
+            flex: 1; 
+            width: 100%; 
+            display: flex; 
+            justify-content: center; 
+            align-items: center; 
+            background: #111; 
+            overflow: hidden; 
+        }
         video { width: 100%; height: 100%; object-fit: cover; }
         
-        /* Overlay in alto: una sola riga piccola (coordinate + nota, se c'è) */
+        /* Overlay in alto */
         .overlay-info {
             position: absolute;
             top: 10px;
@@ -33,71 +47,88 @@
         .text-row { color: #ffffff; }
         .text-row:not(:empty)::before { content: " \00b7  "; color: #4ade80; }
 
-        /* Pannello di controllo inferiore */
+        /* Pannello di controllo inferiore compatto */
         .controls {
-            padding: 12px 20px 20px;
+            flex-shrink: 0;
+            padding: 8px 12px 16px 12px;
             background: #1a1a1a;
             display: flex;
             flex-direction: column;
-            gap: 10px;
+            gap: 6px;
             border-top: 1px solid #333;
         }
-        input[type="text"] {
+        
+        .controls-row {
+            display: flex;
+            gap: 6px;
             width: 100%;
-            padding: 12px 16px;
+        }
+
+        input[type="text"] {
+            flex: 1;
+            padding: 10px 12px;
             border-radius: 8px;
             border: 1px solid #444;
             background: #2a2a2a;
             color: #fff;
-            font-size: 16px;
+            font-size: 15px;
             outline: none;
         }
         input[type="text"]:focus { border-color: #4ade80; }
         
         button {
-            width: 100%;
-            padding: 14px;
+            padding: 12px 16px;
             border-radius: 8px;
             border: none;
             background: #4ade80;
             color: #000;
-            font-size: 16px;
+            font-size: 15px;
             font-weight: bold;
             cursor: pointer;
+            white-space: nowrap;
             transition: background 0.2s;
         }
         button:active { background: #22c55e; }
         button.sec { background: transparent; color: #ccc; border: 1px solid #555; }
         
-        /* Stile specifico per il pulsante autorizzazione fotocamera */
-        #permessiButton { background: #3b82f6; color: #fff; display: none; }
+        #permessiButton { background: #3b82f6; color: #fff; display: none; width: 100%; margin-bottom: 4px; }
         #permessiButton:active { background: #2563eb; }
 
         select {
-            width: 100%; padding: 10px 12px; border-radius: 8px; border: 1px solid #444;
-            background: #2a2a2a; color: #fff; font-size: 14px;
+            width: 100%; 
+            padding: 8px 10px; 
+            border-radius: 8px; 
+            border: 1px solid #444;
+            background: #2a2a2a; 
+            color: #fff; 
+            font-size: 13px;
         }
+
         .anteprima { position: fixed; inset: 0; background: rgba(0,0,0,.92); z-index: 30; display: none;
             flex-direction: column; align-items: center; justify-content: center; gap: 12px; padding: 16px; }
         .anteprima img { max-width: 100%; max-height: 55vh; border-radius: 8px; }
         .anteprima p { color: #ccc; font-size: 13px; text-align: center; margin: 0; max-width: 420px; }
-        .anteprima button { max-width: 420px; }
+        .anteprima button { max-width: 420px; width: 100%; }
         canvas { display: none; }
-        .toast { position: fixed; left: 50%; bottom: 150px; transform: translateX(-50%); background: rgba(0,0,0,.8); color: #4ade80; font-size: 13px; padding: 8px 14px; border-radius: 999px; z-index: 20; max-width: 92%; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; display: none; }
+        .toast { position: fixed; left: 50%; bottom: 100px; transform: translateX(-50%); background: rgba(0,0,0,.8); color: #4ade80; font-size: 13px; padding: 8px 14px; border-radius: 999px; z-index: 20; max-width: 92%; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; display: none; }
     </style>
 </head>
 <body>
 
     <div class="camera-container">
-        <!-- Overlay visivo in tempo reale -->
         <div class="overlay-info"><span class="gps-row" id="gpsDisplay">📍 GPS in corso…</span><span class="text-row" id="textDisplay"></span></div>
         <video id="video" autoplay playsinline></video>
     </div>
 
     <div class="controls">
         <button id="permessiButton">📷 Attiva fotocamera e consenti permessi</button>
-        <button id="snapButton">📸 Scatta</button>
-        <input type="text" id="userInput" placeholder="Nome albero e classe, es. Daniela 5A" maxlength="100">
+        
+        <!-- Riga unita: Campo di testo + Pulsante Scatta vicini -->
+        <div class="controls-row">
+            <input type="text" id="userInput" placeholder="Nome albero e classe, es. Daniela 5A" maxlength="100">
+            <button id="snapButton">📸 Scatta</button>
+        </div>
+
         <select id="modoSalva" aria-label="Dove salvare le foto">
             <option value="galleria">Salva in Foto / Galleria</option>
             <option value="download">Salva nella cartella Download</option>
@@ -115,7 +146,7 @@
     </div>
 
     <script>
-/* piexifjs 1.0.6 - MIT License ... (libreria EXIF inclusa come prima) */
+/* piexifjs 1.0.6 - MIT License */
 (function () {
     "use strict";
     var that = {};
@@ -344,7 +375,6 @@
         let currentCoords = "GPS non disponibile";
         let lastLat = null, lastLon = null;
 
-        // Funzione per avviare la fotocamera con richiesta esplicita dei permessi
         async function avviaFotocamera() {
             try {
                 const stream = await navigator.mediaDevices.getUserMedia({
@@ -352,7 +382,7 @@
                     audio: false
                 });
                 video.srcObject = stream;
-                permessiButton.style.display = 'none'; // Nascondi il pulsante se l'accesso è riuscito
+                permessiButton.style.display = 'none';
             } catch (err) {
                 try {
                     const stream = await navigator.mediaDevices.getUserMedia({ video: true, audio: false });
@@ -367,7 +397,6 @@
 
         permessiButton.addEventListener('click', avviaFotocamera);
 
-        // 2. Ottieni la posizione GPS in tempo reale
         function initGPS() {
             if ("geolocation" in navigator) {
                 navigator.geolocation.watchPosition(
@@ -474,4 +503,88 @@
         const puoCondividere = !!(navigator.canShare && navigator.canShare({ files: [new File([''], 'x.jpg', { type: 'image/jpeg' })] }));
         if (!puoCondividere) {
             modoSalva.value = 'download';
-            modoSalva.querySelector('option[value="galleria"]').disabled = true
+            modoSalva.querySelector('option[value="galleria"]').disabled = true;
+        } else {
+            try { modoSalva.value = localStorage.getItem('modoSalva') || 'galleria'; } catch (e) { modoSalva.value = 'galleria'; }
+        }
+        modoSalva.addEventListener('change', () => { try { localStorage.setItem('modoSalva', modoSalva.value); } catch (e) {} });
+
+        function toast(testo) {
+            const t = document.getElementById('toast');
+            t.textContent = testo; t.style.display = 'block';
+            setTimeout(() => { t.style.display = 'none'; }, 3000);
+        }
+        function scarica(file) {
+            const url = URL.createObjectURL(file);
+            const link = document.createElement('a');
+            link.href = url; link.download = file.name;
+            document.body.appendChild(link); link.click(); document.body.removeChild(link);
+            setTimeout(() => URL.revokeObjectURL(url), 5000);
+        }
+
+        let fotoInAttesa = null;
+        const anteprima = document.getElementById('anteprima');
+        function chiudiAnteprima() {
+            anteprima.style.display = 'none';
+            const img = document.getElementById('anteprimaImg');
+            if (img.src) URL.revokeObjectURL(img.src);
+            img.removeAttribute('src');
+            fotoInAttesa = null;
+        }
+        document.getElementById('btnScarta').addEventListener('click', chiudiAnteprima);
+        document.getElementById('btnSalvaFoto').addEventListener('click', async () => {
+            if (!fotoInAttesa) return;
+            const file = fotoInAttesa;
+            try {
+                await navigator.share({ files: [file] });
+                toast('✔ Foto inviata a: ' + file.name);
+                chiudiAnteprima();
+            } catch (e) {
+                if (e && e.name === 'AbortError') return;
+                scarica(file);
+                toast('Condivisione non riuscita: salvata in Download');
+                chiudiAnteprima();
+            }
+        });
+
+        snapButton.addEventListener('click', () => {
+            if (!video.videoWidth) {
+                alert("La fotocamera non è attiva. Clicca prima su 'Attiva fotocamera'.");
+                return;
+            }
+
+            canvas.width = video.videoWidth;
+            canvas.height = video.videoHeight;
+            const ctx = canvas.getContext('2d');
+
+            ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
+
+            const nota = userInput.value.trim();
+            disegnaRiga(ctx, canvas.width, currentCoords, nota);
+
+            const slug = nota.normalize('NFD').replace(/[\u0300-\u036f]/g, '')
+                .replace(/[^A-Za-z0-9]+/g, '-').replace(/^-+|-+$/g, '').slice(0, 40) || 'foto';
+            const pos = (lastLat !== null && lastLon !== null)
+                ? `_${lastLat.toFixed(6)}_${lastLon.toFixed(6)}` : '_senza-gps';
+            const nomeFile = `${slug}${pos}.jpg`;
+            const dataUrl = aggiungiExif(canvas.toDataURL('image/jpeg', 0.85), nota, lastLat, lastLon);
+            const file = dataUrlAFile(dataUrl, nomeFile);
+
+            if (modoSalva.value === 'galleria') {
+                fotoInTechInAttesa = file;
+                document.getElementById('anteprimaImg').src = URL.createObjectURL(file);
+                document.getElementById('anteprimaNome').textContent = nomeFile;
+                anteprima.style.display = 'flex';
+            } else {
+                scarica(file);
+                toast('✔ Salvata in Download: ' + nomeFile);
+            }
+        });
+
+        avviaFotocamera().catch(() => {
+            permessiButton.style.display = 'block';
+        });
+        initGPS();
+    </script>
+</body>
+</html>
