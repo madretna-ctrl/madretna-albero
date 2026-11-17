@@ -110,7 +110,7 @@
         .anteprima p { color: #ccc; font-size: 13px; text-align: center; margin: 0; max-width: 420px; }
         .anteprima button { max-width: 420px; width: 100%; }
         canvas { display: none; }
-        .toast { position: fixed; left: 50%; bottom: 100px; transform: translateX(-50%); background: rgba(0,0,0,.8); color: #4ade80; font-size: 13px; padding: 8px 14px; border-radius: 999px; z-index: 20; max-width: 92%; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; display: none; }
+        .toast { position: fixed; left: 50%; bottom: 100px; transform: translateX(-50%); background: rgba(0,0,0,.8); color: #4ade80; font-size: 13px; padding: 8px 14px; border-radius: 999px; z-index: 20; max-width: 92%; overflow: hidden; text-overflow: ellipsis; white-space: normal; text-align: center; display: none; }
     </style>
 </head>
 <body>
@@ -129,6 +129,7 @@
         </div>
 
         <select id="modoSalva" aria-label="Dove salvare le foto">
+            <option value="email">Salva in Download + invia email</option>
             <option value="galleria">Salva in Foto / Galleria</option>
             <option value="download">Salva nella cartella Download</option>
         </select>
@@ -139,7 +140,7 @@
     <div class="anteprima" id="anteprima">
         <img id="anteprimaImg" alt="Anteprima della foto">
         <p id="anteprimaNome"></p>
-        <p>Nel menu che si apre scegli «Salva immagine» (iPhone) oppure Galleria / Foto (Android).</p>
+        <p id="anteprimaHint">Nel menu che si apre scegli «Salva immagine» (iPhone) oppure Galleria / Foto (Android).</p>
         <button id="btnSalvaFoto">💾 Salva in Foto</button>
         <button id="btnScarta" class="sec">Scarta e rifai</button>
     </div>
@@ -381,23 +382,41 @@
         let currentCoords = "GPS non disponibile";
         let lastLat = null, lastLon = null;
 
+        let streamAttivo = null;
         async function avviaFotocamera() {
-            try {
-                const stream = await navigator.mediaDevices.getUserMedia({
-                    video: { facingMode: { exact: "environment" } },
-                    audio: false
-                });
-                video.srcObject = stream;
-                permessiButton.style.display = 'none';
-            } catch (err) {
+            if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
+                permessiButton.style.display = 'block';
+                toast("Fotocamera non supportata: apri la pagina in HTTPS con Chrome.");
+                return;
+            }
+            if (streamAttivo) { streamAttivo.getTracks().forEach(t => t.stop()); streamAttivo = null; }
+            const tentativi = [
+                { video: { facingMode: { ideal: "environment" } }, audio: false },
+                { video: true, audio: false }
+            ];
+            let ultimoErrore = null;
+            for (const vincoli of tentativi) {
                 try {
-                    const stream = await navigator.mediaDevices.getUserMedia({ video: true, audio: false });
+                    const stream = await navigator.mediaDevices.getUserMedia(vincoli);
+                    streamAttivo = stream;
                     video.srcObject = stream;
+                    video.muted = true;
+                    try { await video.play(); } catch (e) {}
                     permessiButton.style.display = 'none';
-                } catch (e) {
-                    permessiButton.style.display = 'block';
-                    toast("Permesso fotocamera negato o non disponibile.");
+                    return;
+                } catch (err) {
+                    ultimoErrore = err;
+                    if (err && err.name === 'NotAllowedError') break;
                 }
+            }
+            permessiButton.style.display = 'block';
+            const nome = ultimoErrore && ultimoErrore.name ? ultimoErrore.name : 'errore';
+            if (nome === 'NotAllowedError') {
+                toast("Fotocamera bloccata: tocca il lucchetto accanto all'indirizzo > Autorizzazioni > Fotocamera > Consenti");
+            } else if (nome === 'NotReadableError') {
+                toast("Fotocamera occupata da un'altra app: chiudila e riprova");
+            } else {
+                toast("Fotocamera non disponibile (" + nome + ")");
             }
         }
 
@@ -506,19 +525,22 @@
         }
 
         const modoSalva = document.getElementById('modoSalva');
+        const EMAIL_DEST = 'info@madretna.it';
+        const EMAIL_OGGETTO = 'foto piantumazione';
         const puoCondividere = !!(navigator.canShare && navigator.canShare({ files: [new File([''], 'x.jpg', { type: 'image/jpeg' })] }));
         if (!puoCondividere) {
-            modoSalva.value = 'download';
             modoSalva.querySelector('option[value="galleria"]').disabled = true;
-        } else {
-            try { modoSalva.value = localStorage.getItem('modoSalva') || 'galleria'; } catch (e) { modoSalva.value = 'galleria'; }
         }
+        let modoIniziale = 'email';
+        try { modoIniziale = localStorage.getItem('modoSalva') || 'email'; } catch (e) {}
+        if (modoIniziale === 'galleria' && !puoCondividere) modoIniziale = 'download';
+        modoSalva.value = modoIniziale;
         modoSalva.addEventListener('change', () => { try { localStorage.setItem('modoSalva', modoSalva.value); } catch (e) {} });
 
         function toast(testo) {
             const t = document.getElementById('toast');
             t.textContent = testo; t.style.display = 'block';
-            setTimeout(() => { t.style.display = 'none'; }, 3000);
+            setTimeout(() => { t.style.display = 'none'; }, 6000);
         }
         function scarica(file) {
             const url = URL.createObjectURL(file);
@@ -529,6 +551,7 @@
         }
 
         let fotoInAttesa = null;
+        let modoInAttesa = null;
         const anteprima = document.getElementById('anteprima');
         function chiudiAnteprima() {
             anteprima.style.display = 'none';
@@ -538,9 +561,31 @@
             fotoInAttesa = null;
         }
         document.getElementById('btnScarta').addEventListener('click', chiudiAnteprima);
+        function apriMailto() {
+            location.href = 'mailto:' + EMAIL_DEST + '?subject=' + encodeURIComponent(EMAIL_OGGETTO)
+                + '&body=' + encodeURIComponent('Allego la foto (salvata nella cartella Download).');
+        }
         document.getElementById('btnSalvaFoto').addEventListener('click', async () => {
             if (!fotoInAttesa) return;
             const file = fotoInAttesa;
+            if (modoInAttesa === 'email') {
+                scarica(file);
+                try { navigator.clipboard.writeText(EMAIL_DEST).catch(() => {}); } catch (e) {}
+                if (puoCondividere) {
+                    try {
+                        await navigator.share({ files: [file], title: EMAIL_OGGETTO, text: EMAIL_OGGETTO });
+                        toast('✔ Salvata in Download');
+                    } catch (e) {
+                        if (e && e.name === 'AbortError') toast('Salvata in Download (email non inviata)');
+                        else { toast('Salvata in Download: allega la foto all\'email'); apriMailto(); }
+                    }
+                } else {
+                    toast('Salvata in Download: allega la foto all\'email');
+                    apriMailto();
+                }
+                chiudiAnteprima();
+                return;
+            }
             try {
                 await navigator.share({ files: [file] });
                 toast('✔ Foto inviata a: ' + file.name);
@@ -576,7 +621,17 @@
             const dataUrl = aggiungiExif(canvas.toDataURL('image/jpeg', 0.85), nota, lastLat, lastLon);
             const file = dataUrlAFile(dataUrl, nomeFile);
 
-            if (modoSalva.value === 'galleria') {
+            if (modoSalva.value === 'galleria' || modoSalva.value === 'email') {
+                modoInAttesa = modoSalva.value;
+                const hint = document.getElementById('anteprimaHint');
+                const btn = document.getElementById('btnSalvaFoto');
+                if (modoInAttesa === 'email') {
+                    hint.textContent = 'La foto viene salvata in Download. Nel menu scegli Gmail: oggetto «' + EMAIL_OGGETTO + '» e allegato sono pronti; l\'indirizzo ' + EMAIL_DEST + ' è già copiato, incollalo in «A».';
+                    btn.textContent = '✉️ Salva e invia email';
+                } else {
+                    hint.textContent = 'Nel menu che si apre scegli «Salva immagine» (iPhone) oppure Galleria / Foto (Android).';
+                    btn.textContent = '💾 Salva in Foto';
+                }
                 /* CORRETTO: prima era "fotoInTechInAttesa" (refuso) */
                 fotoInAttesa = file;
                 document.getElementById('anteprimaImg').src = URL.createObjectURL(file);
@@ -590,8 +645,7 @@
 
         avviaFotocamera().catch(() => {
             permessiButton.style.display = 'block';
-        });
-        initGPS();
+        }).finally(() => { initGPS(); });
     </script>
 </body>
 </html>
