@@ -109,6 +109,10 @@
         .anteprima img { max-width: 100%; max-height: 55vh; border-radius: 8px; }
         .anteprima p { color: #ccc; font-size: 13px; text-align: center; margin: 0; max-width: 420px; }
         .anteprima button { max-width: 420px; width: 100%; }
+        .anteprima .ok { color: #4ade80; font-weight: 600; font-size: 14px; }
+        .anteprima b { color: #fff; }
+        .aiuto { display: none; font-size: 12px; color: #fbbf24; text-align: center; line-height: 1.35; }
+        #btnApriDownload { padding: 9px 12px; font-size: 14px; }
         canvas { display: none; }
         .toast { position: fixed; left: 50%; bottom: 100px; transform: translateX(-50%); background: rgba(0,0,0,.8); color: #4ade80; font-size: 13px; padding: 8px 14px; border-radius: 999px; z-index: 20; max-width: 92%; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; display: none; }
     </style>
@@ -124,24 +128,23 @@
         <button id="permessiButton">📷 Attiva fotocamera e consenti permessi</button>
         
         <div class="controls-row">
-            <input type="text" id="userInput" placeholder="Nome albero e classe, es. Daniela 5A" maxlength="100">
+            <input type="text" id="userInput" placeholder="Nome albero, nome donatore" maxlength="100">
             <button id="snapButton">📸 Scatta</button>
         </div>
 
-        <select id="modoSalva" aria-label="Dove salvare le foto">
-            <option value="galleria">Salva in Foto / Galleria</option>
-            <option value="download">Salva nella cartella Download</option>
-        </select>
+        <button id="btnApriDownload" class="sec">📁 Apri cartella Download</button>
+        <div class="aiuto" id="aiutoDownload"></div>
     </div>
 
     <canvas id="canvas"></canvas>
     <div class="toast" id="toast"></div>
     <div class="anteprima" id="anteprima">
-        <img id="anteprimaImg" alt="Anteprima della foto">
-        <p id="anteprimaNome"></p>
-        <p>Nel menu che si apre scegli «Salva immagine» (iPhone) oppure Galleria / Foto (Android).</p>
-        <button id="btnSalvaFoto">💾 Salva in Foto</button>
-        <button id="btnScarta" class="sec">Scarta e rifai</button>
+        <img id="anteprimaImg" alt="Foto scattata">
+        <p class="ok" id="anteprimaNome"></p>
+        <p>La foto è nella cartella <b>Download</b> del telefono. Per inviarmela: apri Download, tocca la foto e scegli <b>Condividi</b> → WhatsApp.</p>
+        <div class="aiuto" id="aiutoDownload2" style="display:none"></div>
+        <button id="btnApriDownload2">📁 Apri cartella Download</button>
+        <button id="btnScarta" class="sec">📷 Scatta un'altra foto</button>
     </div>
 
     <script>
@@ -2802,17 +2805,7 @@ SOFTWARE.
             return new File([bytes], nome, { type: 'image/jpeg' });
         }
 
-        // ---------- scelta di dove salvare ----------
-        const modoSalva = document.getElementById('modoSalva');
-        const puoCondividere = !!(navigator.canShare && navigator.canShare({ files: [new File([''], 'x.jpg', { type: 'image/jpeg' })] }));
-        if (!puoCondividere) {
-            modoSalva.value = 'download';
-            modoSalva.querySelector('option[value="galleria"]').disabled = true;
-        } else {
-            try { modoSalva.value = localStorage.getItem('modoSalva') || 'galleria'; } catch (e) { modoSalva.value = 'galleria'; }
-        }
-        modoSalva.addEventListener('change', () => { try { localStorage.setItem('modoSalva', modoSalva.value); } catch (e) {} });
-
+        // ---------- salvataggio semplice: la foto va da sola nella cartella Download ----------
         function toast(testo) {
             const t = document.getElementById('toast');
             t.textContent = testo; t.style.display = 'block';
@@ -2826,30 +2819,35 @@ SOFTWARE.
             setTimeout(() => URL.revokeObjectURL(url), 5000);
         }
 
-        let fotoInAttesa = null;
+        // Apre l'app che mostra la cartella Download (non si può puntare a una cartella precisa dal browser)
+        const aiutoDownload = document.getElementById('aiutoDownload');
+        function apriDownload() {
+            const ua = navigator.userAgent || '';
+            const iOS = /iPhone|iPad|iPod/i.test(ua) || (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1);
+            let testo;
+            if (/Android/i.test(ua)) {
+                window.location.href = 'intent:#Intent;action=android.intent.action.VIEW_DOWNLOADS;end';
+                testo = 'Se non si apre: apri l\u2019app «File» (o «Download») del telefono e tocca la cartella «Download».';
+            } else if (iOS) {
+                window.location.href = 'shareddocuments://';
+                testo = 'Se non si apre: apri l\u2019app «File», tocca «Sfoglia» e poi la cartella «Download».';
+            } else {
+                testo = 'Apri la cartella «Download» del computer: le foto sono lì.';
+            }
+            [aiutoDownload, document.getElementById('aiutoDownload2')].forEach(el => { el.textContent = testo; el.style.display = 'block'; });
+            setTimeout(() => { [aiutoDownload, document.getElementById('aiutoDownload2')].forEach(el => { el.style.display = 'none'; }); }, 12000);
+        }
+        document.getElementById('btnApriDownload').addEventListener('click', apriDownload);
+        document.getElementById('btnApriDownload2').addEventListener('click', apriDownload);
+
         const anteprima = document.getElementById('anteprima');
         function chiudiAnteprima() {
             anteprima.style.display = 'none';
             const img = document.getElementById('anteprimaImg');
             if (img.src) URL.revokeObjectURL(img.src);
             img.removeAttribute('src');
-            fotoInAttesa = null;
         }
         document.getElementById('btnScarta').addEventListener('click', chiudiAnteprima);
-        document.getElementById('btnSalvaFoto').addEventListener('click', async () => {
-            if (!fotoInAttesa) return;
-            const file = fotoInAttesa;
-            try {
-                await navigator.share({ files: [file] });   // si apre il menu di condivisione: da lì «Salva immagine» / Galleria
-                toast('✔ Foto inviata a: ' + file.name);
-                chiudiAnteprima();
-            } catch (e) {
-                if (e && e.name === 'AbortError') return;    // ha annullato: la foto resta qui, può riprovare
-                scarica(file);
-                toast('Condivisione non riuscita: salvata in Download');
-                chiudiAnteprima();
-            }
-        });
 
         snapButton.addEventListener('click', () => {
             if (!video.videoWidth) {
@@ -2868,8 +2866,7 @@ SOFTWARE.
             const nota = userInput.value.trim();
             disegnaRiga(ctx, canvas.width, currentCoords, nota);
 
-            // JPEG con EXIF (coordinate + nota). Il nome del file porta le stesse informazioni:
-            //   Daniela-5A_37.616251_15.028598.jpg   -> completa-schede.html le abbina da sola alla scheda
+            // JPEG con EXIF (coordinate + nota); il nome del file porta le stesse informazioni
             const slug = nota.normalize('NFD').replace(/[\u0300-\u036f]/g, '')
                 .replace(/[^A-Za-z0-9]+/g, '-').replace(/^-+|-+$/g, '').slice(0, 40) || 'foto';
             const pos = (lastLat !== null && lastLon !== null)
@@ -2878,16 +2875,11 @@ SOFTWARE.
             const dataUrl = aggiungiExif(canvas.toDataURL('image/jpeg', 0.85), nota, lastLat, lastLon);
             const file = dataUrlAFile(dataUrl, nomeFile);
 
-            if (modoSalva.value === 'galleria') {
-                // seconda pressione = gesto dell'utente richiesto dal telefono per aprire il menu di condivisione
-                fotoInAttesa = file;
-                document.getElementById('anteprimaImg').src = URL.createObjectURL(file);
-                document.getElementById('anteprimaNome').textContent = nomeFile;
-                anteprima.style.display = 'flex';
-            } else {
-                scarica(file);
-                toast('✔ Salvata in Download: ' + nomeFile);
-            }
+            // Si salva subito, senza altre scelte, e si mostra la conferma
+            scarica(file);
+            document.getElementById('anteprimaImg').src = URL.createObjectURL(file);
+            document.getElementById('anteprimaNome').textContent = '✔ Foto salvata: ' + nomeFile;
+            anteprima.style.display = 'flex';
         });
 
         // Pulsante dei permessi: richiede di nuovo fotocamera e GPS con un tocco (necessario su alcuni telefoni)
