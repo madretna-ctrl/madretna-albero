@@ -107,12 +107,12 @@
         .anteprima { position: fixed; inset: 0; background: rgba(0,0,0,.92); z-index: 30; display: none;
             flex-direction: column; align-items: center; justify-content: center; gap: 12px; padding: 16px; }
         .anteprima img { max-width: 100%; max-height: 55vh; border-radius: 8px; }
+        #testoSalvata { }
         .anteprima p { color: #ccc; font-size: 13px; text-align: center; margin: 0; max-width: 420px; }
         .anteprima button { max-width: 420px; width: 100%; }
         .anteprima .ok { color: #4ade80; font-weight: 600; font-size: 14px; }
         .anteprima b { color: #fff; }
         .aiuto { display: none; font-size: 12px; color: #fbbf24; text-align: center; line-height: 1.35; }
-        #btnApriDownload { padding: 9px 12px; font-size: 14px; }
         canvas { display: none; }
         .toast { position: fixed; left: 50%; bottom: 100px; transform: translateX(-50%); background: rgba(0,0,0,.8); color: #4ade80; font-size: 13px; padding: 8px 14px; border-radius: 999px; z-index: 20; max-width: 92%; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; display: none; }
     </style>
@@ -132,8 +132,6 @@
             <button id="snapButton">📸 Scatta</button>
         </div>
 
-        <button id="btnApriDownload" class="sec">📁 Apri cartella Download</button>
-        <div class="aiuto" id="aiutoDownload"></div>
     </div>
 
     <canvas id="canvas"></canvas>
@@ -141,9 +139,8 @@
     <div class="anteprima" id="anteprima">
         <img id="anteprimaImg" alt="Foto scattata">
         <p class="ok" id="anteprimaNome"></p>
-        <p>La foto è nella cartella <b>Download</b> del telefono. Per inviarmela: apri Download, tocca la foto e scegli <b>Condividi</b> → WhatsApp.</p>
-        <div class="aiuto" id="aiutoDownload2" style="display:none"></div>
-        <button id="btnApriDownload2">📁 Apri cartella Download</button>
+        <button id="btnInvia">📤 Invia la foto</button>
+        <p id="testoSalvata"></p>
         <button id="btnScarta" class="sec">📷 Scatta un'altra foto</button>
     </div>
 
@@ -2819,26 +2816,20 @@ SOFTWARE.
             setTimeout(() => URL.revokeObjectURL(url), 5000);
         }
 
-        // Apre l'app che mostra la cartella Download (non si può puntare a una cartella precisa dal browser)
-        const aiutoDownload = document.getElementById('aiutoDownload');
-        function apriDownload() {
-            const ua = navigator.userAgent || '';
-            const iOS = /iPhone|iPad|iPod/i.test(ua) || (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1);
-            let testo;
-            if (/Android/i.test(ua)) {
-                window.location.href = 'intent:#Intent;action=android.intent.action.VIEW_DOWNLOADS;end';
-                testo = 'Se non si apre: apri l\u2019app «File» (o «Download») del telefono e tocca la cartella «Download».';
-            } else if (iOS) {
-                window.location.href = 'shareddocuments://';
-                testo = 'Se non si apre: apri l\u2019app «File», tocca «Sfoglia» e poi la cartella «Download».';
-            } else {
-                testo = 'Apri la cartella «Download» del computer: le foto sono lì.';
+        // «Invia la foto»: apre il menu del telefono (WhatsApp ecc.) con la foto già allegata
+        let ultimaFoto = null;
+        const btnInvia = document.getElementById('btnInvia');
+        const puoCondividere = !!(navigator.canShare && navigator.canShare({ files: [new File([''], 'x.jpg', { type: 'image/jpeg' })] }));
+        btnInvia.style.display = puoCondividere ? '' : 'none';
+        btnInvia.addEventListener('click', async () => {
+            if (!ultimaFoto) return;
+            try {
+                await navigator.share({ files: [ultimaFoto] });
+            } catch (e) {
+                if (e && e.name === 'AbortError') return;   // ha chiuso il menu: nessun problema
+                toast('Non è stato possibile inviarla da qui: la trovi nella cartella Download');
             }
-            [aiutoDownload, document.getElementById('aiutoDownload2')].forEach(el => { el.textContent = testo; el.style.display = 'block'; });
-            setTimeout(() => { [aiutoDownload, document.getElementById('aiutoDownload2')].forEach(el => { el.style.display = 'none'; }); }, 12000);
-        }
-        document.getElementById('btnApriDownload').addEventListener('click', apriDownload);
-        document.getElementById('btnApriDownload2').addEventListener('click', apriDownload);
+        });
 
         const anteprima = document.getElementById('anteprima');
         function chiudiAnteprima() {
@@ -2875,10 +2866,14 @@ SOFTWARE.
             const dataUrl = aggiungiExif(canvas.toDataURL('image/jpeg', 0.85), nota, lastLat, lastLon);
             const file = dataUrlAFile(dataUrl, nomeFile);
 
-            // Si salva subito, senza altre scelte, e si mostra la conferma
+            // Si salva subito nella cartella Download (copia di sicurezza) e si mostra la conferma
+            ultimaFoto = file;
             scarica(file);
             document.getElementById('anteprimaImg').src = URL.createObjectURL(file);
             document.getElementById('anteprimaNome').textContent = '✔ Foto salvata: ' + nomeFile;
+            document.getElementById('testoSalvata').textContent = puoCondividere
+                ? 'Tocca «Invia la foto» e scegli WhatsApp. La foto è anche salvata nella cartella Download.'
+                : 'La foto è salvata nella cartella Download del computer.';
             anteprima.style.display = 'flex';
         });
 
