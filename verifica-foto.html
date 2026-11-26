@@ -24,9 +24,9 @@ small{opacity:.7}
 <button onclick="csv()">Esporta CSV</button>
 </div>
 <details open><summary>Zone e Supabase</summary>
-<div class="bar"><input id="url" placeholder="https://xxx.supabase.co" size="30"><input id="key" placeholder="anon key" size="30">
-<input id="em" placeholder="email"><input id="pw" type="password" placeholder="password"><button onclick="zone()">1. Carica zone</button> Tolleranza (m) <input id="tol" type="number" value="30" style="width:70px" onchange="render()"><button onclick="up()">2. Comprimi e carica confermate</button></div>
-<small>Prima carica le zone, poi le foto fuori zona diventano rosse e non vengono caricate. Bucket: <b>foto-piantumazione</b> (pubblico) · tabella: <b>foto_piantumazione</b> · foto max 800 px, JPEG q0.6 + miniatura 200 px</small>
+<div class="bar"><input id="url" value="https://kmxevzxzezqqlgontiuy.supabase.co" size="30"><input id="key" value="sb_publishable_FGXvu3jHu4Zi5LzPzTR7pA_pORU1nLR" size="30">
+<input id="em" placeholder="email"><input id="pw" type="password" placeholder="password"><button onclick="zone()">1. Ricarica zone</button> Tolleranza (m) <input id="tol" type="number" value="30" style="width:70px" onchange="render()"><button onclick="up()">2. Comprimi e carica confermate</button></div>
+<small>Le zone si caricano da sole all'apertura; poi le foto fuori zona diventano rosse e non vengono caricate. Bucket: <b>foto-piantumazione</b> (pubblico) · tabella: <b>foto_piantumazione</b> · foto max 800 px, JPEG q0.6 + miniatura 200 px</small>
 <div id="zinfo"></div><pre id="log"></pre></details>
 <div class="grid" id="g"></div>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.45.4/dist/umd/supabase.min.js"></script>
@@ -53,7 +53,7 @@ async function zone(){
  const u=url.value.trim().replace(/\/$/,''),k=key.value.trim();
  try{const res=await fetch(u+'/rest/v1/zone_candidate?select=*',{headers:{apikey:k,Authorization:'Bearer '+k}});
   const rows=await res.json();if(!Array.isArray(rows))throw new Error(JSON.stringify(rows));
-  Z=[];for(const r of rows){let p=null;for(const c in r){p=pts(r[c]);if(p)break}
+  Z=[];for(const r of rows){let p=pts(r.perimetro);if(!p)for(const c in r){p=pts(r[c]);if(p)break}
    if(p)Z.push({n:r.nome||r.name||r.titolo||('zona '+r.id),p})}
   zinfo.innerHTML=Z.length?'Zone caricate: <b>'+Z.map(z=>z.n+' ('+z.p.length+' vertici)').join(', ')+'</b>':'<span class="bad">Nessun poligono riconosciuto. Colonne: '+Object.keys(rows[0]||{}).join(', ')+'</span>';
   render()}catch(e){zinfo.innerHTML='<span class="bad">Errore zone: '+e.message+'</span>'}}
@@ -88,7 +88,7 @@ async function up(){
  if(e0){log.textContent='Login: '+e0.message;return}
  let n=0,kb=0;log.textContent='';
  for(const r of D){
-  if(!okf(r)||!F[r.f]||!inArea(r.lat,r.lon))continue;if(!Z.length){log.textContent='Carica prima le zone (pulsante 1).';return}
+  if(!okf(r)||!F[r.f]||!inArea(r.lat,r.lon))continue;if(!Z.length){log.textContent='Zone non caricate: premi il pulsante 1.';return}
   const id=r.f.replace(/\.[^.]+$/,'').normalize('NFD').replace(/[^\w]+/g,'_').toLowerCase();
   const a=await comp(F[r.f],800,.6),t=await comp(F[r.f],200,.6);
   const o={contentType:'image/jpeg',upsert:true};
@@ -99,5 +99,5 @@ async function up(){
   if(er)log.textContent+=r.f+': '+er.message+'\n';else{n++;kb+=(a.size+t.size)/1024}
   log.textContent=`Caricate ${n} · ${Math.round(kb)} KB totali\n`+log.textContent.split('\n').slice(1).join('\n')}
  log.textContent+='Fatto.'}
-render();
+render();zone();
 </script></body></html>
