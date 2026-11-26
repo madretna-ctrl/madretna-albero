@@ -1,0 +1,112 @@
+<!DOCTYPE html>
+<html lang="it"><head><meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<title>MadrEtna · Foto in campo</title>
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.css">
+<style>
+*{box-sizing:border-box}body{margin:0;font-family:system-ui,sans-serif;background:#f4f2ea;color:#222;padding-bottom:20px}
+header{background:#2E4F2F;color:#fff;padding:.6rem .9rem;font-weight:600}
+.w{padding:.7rem;max-width:640px;margin:auto}
+#ban{border-radius:12px;padding:1rem;font-size:1.15rem;font-weight:700;color:#fff;background:#777;text-align:center}
+#ban small{display:block;font-weight:400;font-size:.8rem;margin-top:.3rem;opacity:.95}
+.row{display:flex;gap:.5rem;margin:.5rem 0}.row>*{flex:1;min-width:0}
+input,select,button{font:inherit;padding:.6rem;border-radius:8px;border:1px solid #999}
+button{background:#2E4F2F;color:#fff;border:0;font-weight:600}
+#shoot{font-size:1.1rem;padding:.9rem}
+.n{display:flex;gap:.6rem;background:#fff;border-radius:10px;padding:.4rem;margin:.4rem 0;align-items:center;font-size:.85rem}
+.n img{width:72px;height:72px;object-fit:cover;border-radius:6px;background:#ddd}
+#map{height:280px;border-radius:12px;margin-top:.6rem}
+#cam{position:fixed;inset:0;background:#000;z-index:9999;display:flex;flex-direction:column}
+#cam[hidden]{display:none}#cam video,#cam img{flex:1;min-height:0;width:100%;object-fit:contain}
+#cam .b{display:flex;gap:.6rem;padding:.8rem;padding-bottom:calc(.8rem + env(safe-area-inset-bottom,0px))}
+#cam .b button{flex:1;padding:1rem}.x{background:#666}
+small{color:#666}#msg{font-size:.85rem;margin:.4rem 0;min-height:1.2em}
+</style></head><body>
+<header>🌱 Foto degli alberelli in campo</header>
+<div class="w">
+<div id="ban">Attendo il GPS…</div>
+<div id="meta"><small></small></div>
+<div id="near"></div>
+<div class="row"><input id="nome" placeholder="Nome alberello (facoltativo)"><input id="grp" list="gl" placeholder="Classe / gruppo"></div>
+<datalist id="gl"><option>Adulti sabato</option><option>1A</option><option>1B</option><option>1C</option><option>5A</option><option>5B</option><option>5C</option><option>5D</option></datalist>
+<div class="row"><select id="rad"><option value="4">Raggio 4 m</option><option value="8" selected>Raggio 8 m</option><option value="15">Raggio 15 m</option></select><button id="shoot">📷 Scatta foto</button></div>
+<div id="msg"></div>
+<details id="lg"><summary>Accedi per salvare le foto</summary>
+<div class="row"><input id="em" placeholder="email"><input id="pw" type="password" placeholder="password"><button onclick="login()">Accedi</button></div></details>
+<div id="map"></div><small id="zn"></small>
+</div>
+<div id="cam" hidden><video id="v" autoplay playsinline muted></video><img id="pv" hidden>
+<div class="b" id="b1"><button class="x" onclick="closeCam()">Annulla</button><button onclick="snap()">Scatta</button></div>
+<div class="b" id="b2" hidden><button class="x" onclick="retake()">Rifai</button><button onclick="save()">Salva</button></div></div>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.45.4/dist/umd/supabase.min.js"></script>
+<script>
+const U='https://kmxevzxzezqqlgontiuy.supabase.co',K='sb_publishable_FGXvu3jHu4Zi5LzPzTR7pA_pORU1nLR',BK='foto-piantumazione';
+const sb=supabase.createClient(U,K),$=i=>document.getElementById(i);
+let P=[],Z=[],pos=null,blob=null,tblob=null,stream=null,lastKey='';
+const M=(la,lo)=>[(lo-15)*Math.cos(37.6*Math.PI/180)*111320,(la-37.6)*110540];
+const dm=(a,b,c,d)=>{const p=M(a,b),q=M(c,d);return Math.hypot(p[0]-q[0],p[1]-q[1])};
+const pub=p=>p?sb.storage.from(BK).getPublicUrl(p).data.publicUrl:'';
+function pip(x,y,Q){let c=false;for(let i=0,j=Q.length-1;i<Q.length;j=i++)if((Q[i][1]>y)!=(Q[j][1]>y)&&x<(Q[j][0]-Q[i][0])*(y-Q[i][1])/(Q[j][1]-Q[i][1])+Q[i][0])c=!c;return c}
+const map=L.map('map').setView([37.6190,15.0083],17);
+L.tileLayer('https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}',{maxZoom:19}).addTo(map);
+const gz=L.layerGroup().addTo(map),gp=L.layerGroup().addTo(map);let me,mc;
+function drawPts(){gp.clearLayers();P.forEach(p=>L.circleMarker([p.lat,p.lon],{radius:5,color:'#fff',weight:1,fillColor:'#2e7d32',fillOpacity:.9}).addTo(gp).bindPopup((p.classe?p.classe+' · ':'')+(p.nome||'senza nome')+(p.thumb_path?'<br><img src="'+pub(p.thumb_path)+'" width="120">':'')))}
+async function load(){
+ try{const {data,error}=await sb.from('foto_piantumazione').select('id,nome,classe,lat,lon,thumb_path').eq('verificata',true).not('lat','is',null).limit(5000);
+  if(error)throw error;P=data;try{localStorage.setItem('fp',JSON.stringify(P))}catch(e){}}
+ catch(e){try{P=JSON.parse(localStorage.getItem('fp')||'[]')}catch(x){}$('msg').textContent='Dati offline (ultima copia salvata): '+P.length+' foto'}
+ drawPts();upd();
+ try{const r=await fetch(U+'/rest/v1/zone_candidate?select=nome,perimetro',{headers:{apikey:K,Authorization:'Bearer '+K}});const d=await r.json();
+  Z=d.filter(z=>Array.isArray(z.perimetro)&&z.perimetro.length>2).map(z=>({n:z.nome,p:z.perimetro}));
+  Z.forEach(z=>L.polygon(z.p,{color:'#1565c0',weight:2,fillOpacity:.1}).addTo(gz))}catch(e){}}
+function upd(){
+ const b=$('ban'),R=+$('rad').value;
+ if(!pos){b.style.background='#777';b.innerHTML='Attendo il GPS…';return}
+ const{latitude:la,longitude:lo,accuracy:ac}=pos.coords;
+ const[x,y]=M(la,lo);const zz=Z.find(z=>pip(x,y,z.p.map(q=>M(q[0],q[1]))));
+ $('zn').textContent=Z.length?(zz?'Sei dentro: '+zz.n:'Sei fuori dalle zone disegnate'):'';
+ $('meta').innerHTML='<small>'+la.toFixed(6)+', '+lo.toFixed(6)+' · precisione ±'+Math.round(ac)+' m · '+P.length+' foto in archivio</small>';
+ const near=P.map(p=>({...p,d:dm(la,lo,p.lat,p.lon)})).filter(p=>p.d<=Math.max(R,ac)).sort((a,b)=>a.d-b.d);
+ let key,col,h;
+ if(ac>20){key='gps';col='#e69a00';h='GPS impreciso (±'+Math.round(ac)+' m)<small>Aspetta qualche secondo all’aperto prima di fidarti</small>'}
+ else if(near.length){key='si';col='#2e7d32';h='📸 Foto già presente vicino<small>'+near.length+' foto entro '+Math.max(R,Math.round(ac))+' m: confronta con le miniature</small>'}
+ else{key='no';col='#c62828';h='❌ Nessuna foto qui<small>Nessuna foto entro '+Math.max(R,Math.round(ac))+' m: scatta</small>'}
+ b.style.background=col;b.innerHTML=h;
+ if(key!==lastKey&&navigator.vibrate)navigator.vibrate(key==='no'?[300,100,300]:key==='si'?120:[60,60,60]);lastKey=key;
+ $('near').innerHTML=near.slice(0,6).map(p=>'<div class="n"><img src="'+pub(p.thumb_path)+'" alt=""><div><b>'+(p.nome||'senza nome')+'</b><br>'+(p.classe||'')+' · a '+p.d.toFixed(1)+' m</div></div>').join('');
+ if(!me){me=L.circleMarker([la,lo],{radius:8,color:'#fff',fillColor:'#1976d2',fillOpacity:1,weight:3}).addTo(map);mc=L.circle([la,lo],{radius:ac,color:'#1976d2',weight:1,fillOpacity:.1}).addTo(map);map.setView([la,lo],19)}
+ else{me.setLatLng([la,lo]);mc.setLatLng([la,lo]);mc.setRadius(ac);map.panTo([la,lo],{animate:false})}}
+if(navigator.geolocation)navigator.geolocation.watchPosition(p=>{pos=p;upd()},e=>{$('ban').style.background='#c62828';$('ban').innerHTML='GPS non disponibile<small>'+e.message+' — consenti la posizione precisa</small>'},{enableHighAccuracy:true,maximumAge:0,timeout:20000});
+$('rad').onchange=upd;
+async function login(){const{error}=await sb.auth.signInWithPassword({email:$('em').value,password:$('pw').value});$('msg').textContent=error?'Login: '+error.message:'Accesso eseguito';if(!error){$('lg').open=false;if(window._pend){window._pend=false;save()}}}
+$('shoot').onclick=async()=>{
+ if(!pos){$('msg').textContent='Aspetta il segnale GPS';return}
+ try{stream=await navigator.mediaDevices.getUserMedia({video:{facingMode:'environment',width:{ideal:1280}},audio:false});
+  $('v').srcObject=stream;$('v').hidden=false;$('pv').hidden=true;$('b1').hidden=false;$('b2').hidden=true;$('cam').hidden=false}
+ catch(e){$('msg').textContent='Fotocamera non disponibile: '+e.message}};
+function closeCam(){if(stream)stream.getTracks().forEach(t=>t.stop());stream=null;$('cam').hidden=true}
+function toB(c,max,q){const s=Math.min(1,max/Math.max(c.width,c.height)),o=document.createElement('canvas');o.width=Math.round(c.width*s);o.height=Math.round(c.height*s);o.getContext('2d').drawImage(c,0,0,o.width,o.height);return new Promise(r=>o.toBlob(r,'image/jpeg',q))}
+async function snap(){
+ const v=$('v'),c=document.createElement('canvas');c.width=v.videoWidth;c.height=v.videoHeight;const g=c.getContext('2d');g.drawImage(v,0,0);
+ const{latitude:la,longitude:lo,altitude:al}=pos.coords,t=la.toFixed(6)+', '+lo.toFixed(6)+(al!=null?' · '+Math.round(al)+' m':'')+($('nome').value?' · '+$('nome').value:'');
+ const fs=Math.round(c.width/28);g.font=fs+'px monospace';const w=g.measureText(t).width+fs;
+ g.fillStyle='rgba(0,0,0,.6)';g.fillRect(8,8,w,fs*1.6);g.fillStyle='#fff';g.fillText(t,8+fs/2,8+fs*1.15);
+ blob=await toB(c,800,.6);tblob=await toB(c,200,.6);
+ closeCam();$('cam').hidden=false;$('v').hidden=true;$('pv').src=URL.createObjectURL(blob);$('pv').hidden=false;$('b1').hidden=true;$('b2').hidden=false;
+ window._pos={la,lo}}
+function retake(){$('cam').hidden=true;$('shoot').onclick()}
+async function save(){
+ const{data:s}=await sb.auth.getSession();
+ if(!s.session){$('cam').hidden=true;$('lg').open=true;window._pend=true;$('msg').textContent='Accedi: la foto verrà salvata subito dopo';return}
+ const id='campo_'+Date.now(),o={contentType:'image/jpeg',upsert:true},st=sb.storage.from(BK);
+ const a=await st.upload('foto/'+id+'.jpg',blob,o),b=await st.upload('thumb/'+id+'.jpg',tblob,o);
+ const row={file_originale:'campo/'+id+'.jpg',nome:$('nome').value||null,classe:$('grp').value||null,lat:window._pos.la,lon:window._pos.lo,verificata:true,path:'foto/'+id+'.jpg',thumb_path:'thumb/'+id+'.jpg'};
+ const d=await sb.from('foto_piantumazione').insert(row).select('id').single();
+ const er=a.error||b.error||d.error;
+ $('cam').hidden=true;
+ if(er){$('msg').textContent='Salvataggio non riuscito: '+er.message;return}
+ P.push({...row,id:d.data.id});try{localStorage.setItem('fp',JSON.stringify(P))}catch(e){}
+ drawPts();upd();$('nome').value='';$('msg').textContent='✅ Foto salvata ('+Math.round((blob.size+tblob.size)/1024)+' KB)'}
+load();
+</script></body></html>
