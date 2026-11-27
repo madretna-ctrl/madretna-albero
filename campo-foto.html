@@ -22,7 +22,7 @@ button{background:#2E4F2F;color:#fff;border:0;font-weight:600}
 #cam .b button{flex:1;padding:1rem}.x{background:#666}
 small{color:#666}#msg{font-size:.85rem;margin:.4rem 0;min-height:1.2em}
 </style></head><body>
-<header>🌱 Foto degli alberelli in campo</header>
+<header id="hd">🌱 Foto degli alberelli in campo</header>
 <div class="w">
 <div id="ban">Attendo il GPS…</div>
 <div id="meta"><small></small></div>
@@ -31,6 +31,11 @@ small{color:#666}#msg{font-size:.85rem;margin:.4rem 0;min-height:1.2em}
 <datalist id="gl"><option>Adulti sabato</option><option>1A</option><option>1B</option><option>1C</option><option>5A</option><option>5B</option><option>5C</option><option>5D</option></datalist>
 <div class="row"><select id="rad"><option value="4">Raggio 4 m</option><option value="8" selected>Raggio 8 m</option><option value="15">Raggio 15 m</option></select><button id="shoot">📷 Scatta foto</button></div>
 <div id="msg"></div>
+<details id="tp"><summary>🧪 Modalità prova (da casa)</summary>
+<label><input type="checkbox" id="test"> Attiva: posizione simulata, nessun salvataggio su Supabase</label>
+<div class="row"><select id="tacc"><option value="5">Precisione ±5 m</option><option value="15">Precisione ±15 m</option><option value="30">Precisione ±30 m</option></select></div>
+<div class="row"><button onclick="goPhoto()">Vai su una foto esistente</button><button onclick="goEmpty()">Vai dove non c’è foto</button></div>
+<small>Oppure tocca la mappa per spostarti dove vuoi.</small></details>
 <details id="lg"><summary>Accedi per salvare le foto</summary>
 <div class="row"><input id="em" placeholder="email"><input id="pw" type="password" placeholder="password"><button onclick="login()">Accedi</button></div></details>
 <div id="map"></div><small id="zn"></small>
@@ -74,21 +79,31 @@ function upd(){
  else{key='no';col='#c62828';h='❌ Nessuna foto qui<small>Nessuna foto entro '+Math.max(R,Math.round(ac))+' m: scatta</small>'}
  b.style.background=col;b.innerHTML=h;
  if(key!==lastKey&&navigator.vibrate)navigator.vibrate(key==='no'?[300,100,300]:key==='si'?120:[60,60,60]);lastKey=key;
- $('near').innerHTML=near.slice(0,6).map(p=>'<div class="n"><img src="'+pub(p.thumb_path)+'" alt=""><div><b>'+(p.nome||'senza nome')+'</b><br>'+(p.classe||'')+' · a '+p.d.toFixed(1)+' m</div></div>').join('');
+ $('near').innerHTML=near.slice(0,6).map(p=>'<div class="n"><img src="'+(p._t||pub(p.thumb_path))+'" alt=""><div><b>'+(p.nome||'senza nome')+'</b><br>'+(p.classe||'')+' · a '+p.d.toFixed(1)+' m</div></div>').join('');
  if(!me){me=L.circleMarker([la,lo],{radius:8,color:'#fff',fillColor:'#1976d2',fillOpacity:1,weight:3}).addTo(map);mc=L.circle([la,lo],{radius:ac,color:'#1976d2',weight:1,fillOpacity:.1}).addTo(map);map.setView([la,lo],19)}
  else{me.setLatLng([la,lo]);mc.setLatLng([la,lo]);mc.setRadius(ac);map.panTo([la,lo],{animate:false})}}
-if(navigator.geolocation)navigator.geolocation.watchPosition(p=>{pos=p;upd()},e=>{$('ban').style.background='#c62828';$('ban').innerHTML='GPS non disponibile<small>'+e.message+' — consenti la posizione precisa</small>'},{enableHighAccuracy:true,maximumAge:0,timeout:20000});
+if(navigator.geolocation)navigator.geolocation.watchPosition(p=>{if(!$('test').checked){pos=p;upd()}},e=>{$('ban').style.background='#c62828';$('ban').innerHTML='GPS non disponibile<small>'+e.message+' — consenti la posizione precisa</small>'},{enableHighAccuracy:true,maximumAge:0,timeout:20000});
 $('rad').onchange=upd;
+function setPos(la,lo){$('test').checked=true;$('test').onchange();pos={coords:{latitude:la,longitude:lo,accuracy:+$('tacc').value,altitude:null}};upd();map.setView([la,lo],19)}
+$('test').onchange=()=>{$('hd').style.background=$('test').checked?'#c27c00':'#2E4F2F';$('hd').textContent=$('test').checked?'🧪 MODALITÀ PROVA — posizione simulata':'🌱 Foto degli alberelli in campo';if(!$('test').checked){pos=null;lastKey='';upd()}};
+$('tacc').onchange=()=>{if($('test').checked&&pos){pos.coords.accuracy=+$('tacc').value;upd()}};
+map.on('click',e=>{if($('test').checked)setPos(e.latlng.lat,e.latlng.lng)});
+function goPhoto(){if(!P.length){$('msg').textContent='Nessuna foto in archivio';return}const q=P[Math.floor(Math.random()*P.length)];setPos(q.lat+(Math.random()-.5)*3e-5,q.lon+(Math.random()-.5)*3e-5)}
+function goEmpty(){for(let i=0;i<500;i++){const z=Z[Math.floor(Math.random()*Z.length)];if(!z)break;const la=z.p.map(q=>q[0]),lo=z.p.map(q=>q[1]);
+ const a=Math.min(...la)+Math.random()*(Math.max(...la)-Math.min(...la)),b=Math.min(...lo)+Math.random()*(Math.max(...lo)-Math.min(...lo));
+ const[x,y]=M(a,b);if(pip(x,y,z.p.map(q=>M(q[0],q[1])))&&!P.some(q=>dm(a,b,q.lat,q.lon)<15)){setPos(a,b);return}}
+ $('msg').textContent='Non ho trovato un punto libero nelle zone'}
 async function login(){const{error}=await sb.auth.signInWithPassword({email:$('em').value,password:$('pw').value});$('msg').textContent=error?'Login: '+error.message:'Accesso eseguito';if(!error){$('lg').open=false;if(window._pend){window._pend=false;save()}}}
 $('shoot').onclick=async()=>{
  if(!pos){$('msg').textContent='Aspetta il segnale GPS';return}
  try{stream=await navigator.mediaDevices.getUserMedia({video:{facingMode:'environment',width:{ideal:1280}},audio:false});
   $('v').srcObject=stream;$('v').hidden=false;$('pv').hidden=true;$('b1').hidden=false;$('b2').hidden=true;$('cam').hidden=false}
- catch(e){$('msg').textContent='Fotocamera non disponibile: '+e.message}};
+ catch(e){if($('test').checked)fake();else $('msg').textContent='Fotocamera non disponibile: '+e.message}};
+function fake(){const c=document.createElement('canvas');c.width=480;c.height=640;const g=c.getContext('2d');g.fillStyle='#456';g.fillRect(0,0,480,640);g.fillStyle='#fff';g.font='32px sans-serif';g.fillText('FOTO DI PROVA',110,320);finish(c)}
 function closeCam(){if(stream)stream.getTracks().forEach(t=>t.stop());stream=null;$('cam').hidden=true}
 function toB(c,max,q){const s=Math.min(1,max/Math.max(c.width,c.height)),o=document.createElement('canvas');o.width=Math.round(c.width*s);o.height=Math.round(c.height*s);o.getContext('2d').drawImage(c,0,0,o.width,o.height);return new Promise(r=>o.toBlob(r,'image/jpeg',q))}
-async function snap(){
- const v=$('v'),c=document.createElement('canvas');c.width=v.videoWidth;c.height=v.videoHeight;const g=c.getContext('2d');g.drawImage(v,0,0);
+async function snap(){const v=$('v'),c=document.createElement('canvas');c.width=v.videoWidth;c.height=v.videoHeight;c.getContext('2d').drawImage(v,0,0);return finish(c)}
+async function finish(c){const g=c.getContext('2d');
  const{latitude:la,longitude:lo,altitude:al}=pos.coords,t=la.toFixed(6)+', '+lo.toFixed(6)+(al!=null?' · '+Math.round(al)+' m':'')+($('nome').value?' · '+$('nome').value:'');
  const fs=Math.round(c.width/28);g.font=fs+'px monospace';const w=g.measureText(t).width+fs;
  g.fillStyle='rgba(0,0,0,.6)';g.fillRect(8,8,w,fs*1.6);g.fillStyle='#fff';g.fillText(t,8+fs/2,8+fs*1.15);
@@ -97,6 +112,7 @@ async function snap(){
  window._pos={la,lo}}
 function retake(){$('cam').hidden=true;$('shoot').onclick()}
 async function save(){
+ if($('test').checked){P.push({nome:$('nome').value||null,classe:$('grp').value||null,lat:window._pos.la,lon:window._pos.lo,_t:URL.createObjectURL(tblob)});$('cam').hidden=true;drawPts();upd();$('msg').textContent='🧪 PROVA: foto NON salvata su Supabase ('+Math.round((blob.size+tblob.size)/1024)+' KB), ma ora conta come presente: ricarica la pagina per azzerare';return}
  const{data:s}=await sb.auth.getSession();
  if(!s.session){$('cam').hidden=true;$('lg').open=true;window._pend=true;$('msg').textContent='Accedi: la foto verrà salvata subito dopo';return}
  const id='campo_'+Date.now(),o={contentType:'image/jpeg',upsert:true},st=sb.storage.from(BK);
